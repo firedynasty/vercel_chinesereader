@@ -1,0 +1,40 @@
+Debug Log - 2026-02-07
+
+Issue: Dropbox OAuth "Invalid redirect_uri" error
+======================================================
+
+Problem:
+- Clicking DB button and signing in with Dropbox returned:
+  "Error connecting app: It seems the app you're using submitted a bad request."
+  "Invalid redirect_uri"
+- Error occurred on both localhost:3000 and Vercel deployment.
+
+Root Cause:
+- The code was using `window.location.origin + window.location.pathname` as the redirect URI.
+- On localhost:3000, this sent `http://localhost:3000/` (with trailing slash) or
+  `http://localhost:3000/index.html` (with path).
+- The Dropbox app console had `http://localhost:3000` registered (no trailing slash, no path).
+- Dropbox requires an EXACT match between the redirect_uri sent in the OAuth request
+  and what's registered in the app settings.
+
+Fix:
+- Changed both occurrences of `window.location.origin + window.location.pathname`
+  to just `window.location.origin` in:
+  1. handleDropboxSignIn() - the initial OAuth authorization request
+  2. handleDropboxOAuthRedirect() - the token exchange request
+- `window.location.origin` returns `http://localhost:3000` (no trailing slash),
+  which matches the registered redirect URI exactly.
+
+Registered Redirect URIs in Dropbox App Console:
+- http://localhost:3000
+- https://vercel-chinesereader.vercel.app
+- https://vercel-flashcards.vercel.app/flashcards.html
+- http://localhost:3000/flashcards
+- (and several others for other projects)
+
+Key Lesson:
+- Dropbox OAuth redirect_uri matching is strict/exact.
+- `window.location.origin` does NOT include trailing slash or pathname.
+- `window.location.pathname` adds `/` or `/index.html` which breaks the match.
+- When multiple apps share one Dropbox app key, each app's URL must be
+  separately registered as a redirect URI.
