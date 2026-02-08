@@ -1,0 +1,1697 @@
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Text-to-Speech Reader</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 2rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .primary-button {
+            background-color: #3B82F6;
+        }
+
+        .primary-button:hover {
+            background-color: #2563EB;
+        }
+
+        .secondary-button {
+            background-color: #6B7280;
+        }
+
+        .secondary-button:hover {
+            background-color: #4B5563;
+        }
+
+        .success-button {
+            background-color: #10B981;
+        }
+
+        .success-button:hover {
+            background-color: #059669;
+        }
+
+        .danger-button {
+            background-color: #EF4444;
+        }
+
+        .danger-button:hover {
+            background-color: #DC2626;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 1.5rem;
+        }
+
+        .reading-area {
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            min-height: 200px;
+            font-size: 1.5rem;
+            line-height: 2;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        }
+
+        .char {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: inline-block;
+        }
+
+        .char:hover {
+            background-color: #e9ecef;
+        }
+
+        .char.current {
+            background-color: #ffd43b;
+            border-radius: 3px;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(255, 212, 59, 0.5);
+        }
+
+        .gloss-group {
+            position: relative;
+            display: inline;
+            border-bottom: 2px dotted #6B7280;
+            cursor: help;
+        }
+
+        .gloss-group::after {
+            content: attr(data-gloss);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .gloss-group:hover::after {
+            opacity: 1;
+        }
+
+        .gloss-group .char {
+            border-bottom: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        select {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #3B82F6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status {
+            text-align: center;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-weight: 500;
+            display: block;
+        }
+
+        .sentence-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .nav-button {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: background-color 0.2s;
+        }
+
+        .nav-button:hover {
+            background-color: #5a6268;
+        }
+
+        .nav-button:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .sentence-indicator {
+            flex: 1;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            padding: 0.5rem;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+            min-height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flashcard-section {
+            margin: 1.5rem 0;
+            border: 2px solid #8B5CF6;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .flashcard-section.visible {
+            display: block;
+        }
+
+        .flashcard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #8B5CF6;
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+
+        .flashcard-header span {
+            font-weight: 500;
+        }
+
+        .flashcard-output {
+            padding: 1rem;
+            background-color: #faf5ff;
+            white-space: pre-wrap;
+            font-family: "Microsoft YaHei", "PingFang SC", monospace;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            user-select: all;
+        }
+
+        .purple-button {
+            background-color: #8B5CF6;
+        }
+
+        .purple-button:hover {
+            background-color: #7C3AED;
+        }
+
+        /* Dropbox Modal Styles */
+        .dbx-modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .dbx-modal {
+            width: 90%; max-width: 500px; max-height: 80vh;
+            background: #1a1a2e;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .dbx-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 16px; font-weight: bold; color: #4da6ff;
+        }
+        .dbx-close-btn {
+            background: transparent; border: none; color: #888;
+            font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 4px;
+        }
+        .dbx-close-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .dbx-modal-body { flex: 1; overflow-y: auto; padding: 15px 20px; }
+        .dbx-app-key-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .dbx-app-key-row input {
+            flex: 1; padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+            background: rgba(255,255,255,0.1); color: #fff; font-size: 14px; outline: none;
+        }
+        .dbx-app-key-row input:focus { border-color: #4da6ff; }
+        .dbx-app-key-row button {
+            padding: 10px 16px; background: #0061FF; color: white;
+            border: none; border-radius: 6px; font-size: 14px; cursor: pointer;
+        }
+        .dbx-app-key-row button:hover { background: #0052d4; }
+        .dbx-search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .dbx-search-row input {
+            flex: 1; padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+            background: rgba(255,255,255,0.1); color: #fff; font-size: 14px; outline: none;
+        }
+        .dbx-search-row input:focus { border-color: #4da6ff; }
+        .dbx-search-row button {
+            padding: 10px 16px; background: #0061FF; color: white;
+            border: none; border-radius: 6px; font-size: 14px; cursor: pointer;
+        }
+        .dbx-search-row button:hover { background: #0052d4; }
+        .dbx-mode-toggle { display: flex; gap: 15px; margin-bottom: 12px; }
+        .dbx-mode-toggle label {
+            display: flex; align-items: center; gap: 5px;
+            color: #a8d8ea; font-size: 13px; cursor: pointer;
+        }
+        #dbxBackNav { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .dbx-back-link {
+            background: transparent; border: none; color: #4da6ff;
+            font-size: 13px; cursor: pointer; padding: 4px 0;
+        }
+        .dbx-back-link:hover { text-decoration: underline; }
+        .dbx-folder-path { font-size: 12px; color: #888; word-break: break-all; }
+        .dbx-results { max-height: 40vh; overflow-y: auto; margin-bottom: 15px; }
+        .dbx-result-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s;
+        }
+        .dbx-result-item:hover { background: rgba(255,255,255,0.1); }
+        .dbx-result-icon { font-size: 18px; flex-shrink: 0; }
+        .dbx-result-info { flex: 1; min-width: 0; }
+        .dbx-result-name {
+            font-size: 14px; color: #fff;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .dbx-result-path {
+            font-size: 11px; color: #888;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .dbx-sign-out-btn {
+            width: 100%; padding: 10px;
+            background: rgba(255,255,255,0.1); color: #f87171;
+            border: 1px solid rgba(248,113,113,0.3); border-radius: 6px;
+            font-size: 13px; cursor: pointer;
+        }
+        .dbx-sign-out-btn:hover { background: rgba(248,113,113,0.15); }
+        .dbx-status { font-size: 12px; color: #888; margin-bottom: 10px; min-height: 18px; }
+        .dbx-save-btn { background: #0061FF; color: white; }
+        .dbx-save-btn:hover { background: #0052d4; }
+        .db-button {
+            background-color: #0061FF; font-size: 12px; font-weight: bold;
+            padding: 0.75rem 1rem;
+        }
+        .db-button:hover { background-color: #0052d4; }
+
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .radio-label input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📖 中文朗讀器 Chinese Text-to-Speech Reader</h1>
+
+        <!-- Language Selection (Mandarin/Cantonese) -->
+        <div class="radio-group">
+            <label>選擇語言 | Select Language:</label>
+            <label class="radio-label">
+                <input type="radio" name="chineseLanguage" value="zh-CN" id="mandarinRadio" checked>
+                <span>🇨🇳 普通話 Mandarin</span>
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="chineseLanguage" value="zh-HK" id="cantoneseRadio">
+                <span>🇭🇰 粵語 Cantonese</span>
+            </label>
+        </div>
+
+        <div class="button-group">
+            <button class="primary-button" id="pasteButton">📋 貼上文字 Paste (Esc)</button>
+            <button class="secondary-button" id="clearButton">🗑️ 清空 Clear</button>
+            <button class="purple-button" id="extractFlashcardsButton">📇 提取詞卡 Extract Flashcards</button>
+            <button class="db-button" id="dropboxBtn" title="Dropbox">DB</button>
+            <button class="dbx-save-btn" id="dbxSaveBtn" style="display: none; padding: 0.75rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Save &#8593; DB</button>
+        </div>
+
+        <textarea id="textArea" placeholder="在此貼上中文文字 / Paste Chinese text here..."></textarea>
+
+        <div class="flashcard-section" id="flashcardSection">
+            <div class="flashcard-header">
+                <span>📇 Flashcards for Vercel</span>
+                <button class="primary-button" id="copyFlashcardsButton" style="padding: 0.4rem 1rem; font-size: 0.85rem;">📋 Copy</button>
+            </div>
+            <div class="flashcard-output" id="flashcardOutput"></div>
+        </div>
+
+        <div class="controls">
+            <div class="speed-control">
+                <label for="speedSelect">速度 Speed:</label>
+                <select id="speedSelect">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.7" selected>0.7x</option>
+                    <option value="1">1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Sentence Navigation Bar with Play Controls -->
+        <div class="sentence-nav">
+            <button class="nav-button" id="prevSentenceButton">◀</button>
+            <span class="sentence-indicator" id="sentenceIndicator">準備閱讀 Ready to read...</span>
+            <button class="nav-button" id="nextSentenceButton">▶</button>
+            <button class="success-button" id="playButton" style="margin-left: 1rem;">▶️ 播放 Play</button>
+            <button class="secondary-button" id="stopButton" disabled style="margin-left: 0.5rem;">⏹️ 停止 Stop</button>
+            <button class="secondary-button" id="resetButton" style="margin-left: 0.5rem;">🔄 重設 Reset</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="status" id="statusDisplay">準備閱讀中文 Ready to read Chinese text</div>
+
+        <div class="reading-area" id="readingArea">
+            <p style="text-align: center; color: #666;">文字將在此顯示並逐字高亮 / Text will appear here with character-by-character highlighting</p>
+        </div>
+    </div>
+
+    <!-- Dropbox Modal -->
+    <div id="dbxModal" class="dbx-modal-overlay" style="display: none;">
+        <div class="dbx-modal">
+            <div class="dbx-modal-header">
+                <span>Dropbox</span>
+                <button class="dbx-close-btn" id="dbxCloseBtn">&#10005;</button>
+            </div>
+            <div class="dbx-modal-body">
+                <div id="dbxSignInSection">
+                    <div class="dbx-app-key-row" id="dbxAppKeyRow" style="display: none;">
+                        <input type="text" id="dbxAppKeyInput" placeholder="Dropbox App Key">
+                    </div>
+                    <div class="dbx-app-key-row">
+                        <button id="dbxSignInBtn" style="flex: 1;">Sign In</button>
+                    </div>
+                </div>
+                <div id="dbxSearchSection" style="display: none;">
+                    <div class="dbx-status" id="dbxStatus"></div>
+                    <div class="dbx-search-row">
+                        <input type="text" id="dbxSearchInput" placeholder="Search files...">
+                        <button id="dbxSearchBtn">Search</button>
+                    </div>
+                    <div class="dbx-mode-toggle">
+                        <label><input type="radio" name="dbxSearchMode" value="file" checked> Files</label>
+                        <label><input type="radio" name="dbxSearchMode" value="folder"> Folders</label>
+                    </div>
+                    <div id="dbxBackNav" style="display: none;">
+                        <button class="dbx-back-link" id="dbxBackBtn">&#8592; Back to results</button>
+                        <span class="dbx-folder-path" id="dbxFolderPath"></span>
+                    </div>
+                    <div id="dbxResults" class="dbx-results"></div>
+                    <button id="dbxSignOutBtn" class="dbx-sign-out-btn">Sign Out</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ChineseTextToSpeech {
+            constructor() {
+                this.textArea = document.getElementById('textArea');
+                this.readingArea = document.getElementById('readingArea');
+                this.statusDisplay = document.getElementById('statusDisplay');
+                this.progressFill = document.getElementById('progressFill');
+
+                this.playButton = document.getElementById('playButton');
+                this.stopButton = document.getElementById('stopButton');
+                this.resetButton = document.getElementById('resetButton');
+                this.speedSelect = document.getElementById('speedSelect');
+
+                this.mandarinRadio = document.getElementById('mandarinRadio');
+                this.cantoneseRadio = document.getElementById('cantoneseRadio');
+
+                this.sentenceIndicator = document.getElementById('sentenceIndicator');
+                this.prevSentenceButton = document.getElementById('prevSentenceButton');
+                this.nextSentenceButton = document.getElementById('nextSentenceButton');
+
+                this.flashcardSection = document.getElementById('flashcardSection');
+                this.flashcardOutput = document.getElementById('flashcardOutput');
+
+                this.chars = [];
+                this.currentCharIndex = 0;
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.utterance = null;
+
+                this.sentenceStartTime = null;
+                this.actualTimingAdjustment = 1.0;
+
+                // Sentence number input properties
+                this.sentenceNumberInput = '';
+                this.sentenceInputTimeoutRef = null;
+
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // Clipboard paste
+                document.getElementById('pasteButton').addEventListener('click', () => this.pasteFromClipboard());
+
+                // Clear text
+                document.getElementById('clearButton').addEventListener('click', () => this.clearText());
+
+                // Text area changes
+                this.textArea.addEventListener('input', () => this.updateReadingArea());
+
+                // Playback controls
+                this.playButton.addEventListener('click', () => this.togglePlayPause());
+                this.stopButton.addEventListener('click', () => this.stop());
+                this.resetButton.addEventListener('click', () => this.reset());
+
+                // Speed changes
+                this.speedSelect.addEventListener('change', () => this.updateSpeed());
+
+                // Character clicking in main reading area
+                this.readingArea.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('char')) {
+                        const charIndex = parseInt(e.target.dataset.index);
+                        this.jumpToChar(charIndex);
+                    }
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    // Escape key to stop/play
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        if (this.isPlaying) {
+                            this.stop();
+                        } else {
+                            this.play();
+                        }
+                    }
+                    if (e.key === 'Enter' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+                        e.preventDefault();
+                        if (this.isPlaying) {
+                            this.stop();
+                        } else {
+                            this.play();
+                        }
+                    }
+                    // '`' key to reset
+                    if (e.key === '`') {
+                        e.preventDefault();
+                        this.reset();
+                    }
+                    // Digit keys 0-9 for sentence number input
+                    if (e.key >= '0' && e.key <= '9' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+                        e.preventDefault();
+                        this.handleSentenceNumberInput(e.key);
+                    }
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.navigateToSentence(-1);
+                    }
+                    if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        this.navigateToSentence(1);
+                    }
+                });
+
+                // Flashcard extraction
+                document.getElementById('extractFlashcardsButton').addEventListener('click', () => this.extractFlashcards());
+                document.getElementById('copyFlashcardsButton').addEventListener('click', () => this.copyFlashcards());
+
+                // Sentence navigation
+                this.prevSentenceButton.addEventListener('click', () => this.navigateToSentence(-1));
+                this.nextSentenceButton.addEventListener('click', () => this.navigateToSentence(1));
+
+                // Language radio button changes
+                this.mandarinRadio.addEventListener('change', () => {
+                    if (this.mandarinRadio.checked) {
+                        console.log('🔄 Switched to Mandarin (zh-CN)');
+                        this.updateStatus('切換至普通話 Switched to Mandarin');
+
+                        // If currently playing, restart from current sentence with new voice
+                        if (this.isPlaying) {
+                            this.stop();
+                            setTimeout(() => {
+                                this.play();
+                            }, 100);
+                        }
+                    }
+                });
+
+                this.cantoneseRadio.addEventListener('change', () => {
+                    if (this.cantoneseRadio.checked) {
+                        console.log('🔄 Switched to Cantonese (zh-HK)');
+                        this.updateStatus('切換至粵語 Switched to Cantonese');
+
+                        // If currently playing, restart from current sentence with new voice
+                        if (this.isPlaying) {
+                            this.stop();
+                            setTimeout(() => {
+                                this.play();
+                            }, 100);
+                        }
+                    }
+                });
+
+            }
+
+            async pasteFromClipboard() {
+                try {
+                    this.stop();
+
+                    let text = await navigator.clipboard.readText();
+                    this.textArea.value = text;
+                    this.updateReadingArea();
+
+                    this.updateStatus('文字已貼上 Text pasted successfully!');
+                } catch (err) {
+                    console.error('Failed to read clipboard:', err);
+                    this.updateStatus('無法讀取剪貼板 Failed to access clipboard');
+                }
+            }
+
+            clearText() {
+                this.textArea.value = '';
+                this.readingArea.innerHTML = '<p style="text-align: center; color: #666;">文字將在此顯示並逐字高亮 / Text will appear here with character-by-character highlighting</p>';
+                this.reset();
+                this.updateStatus('已清空 Text cleared');
+            }
+
+            updateReadingArea() {
+                if (this.isPlaying) {
+                    this.stop();
+                }
+
+                let text = this.textArea.value.trim();
+                if (!text) {
+                    this.clearText();
+                    return;
+                }
+
+                // Split Chinese text into sentences (using Chinese punctuation, numbered items, AND newlines)
+                // Split on: numbered patterns like "1. **", Chinese punctuation, or newlines
+                const allRawSentences = text
+                    .split(/(?=[0-9]+\.\s+\*\*)|[。！？;；]+|\n/)
+                    .filter(sentence => sentence.trim().length > 0);
+
+                // Process sentences
+                this.chars = [];
+                this.sentences = [];
+                let charIndex = 0;
+                let sentenceIndex = 0;
+
+                let paragraphsHtml = '';
+                allRawSentences.forEach((sentence, index) => {
+                    const trimmedSentence = sentence.trim();
+                    if (!trimmedSentence) return;
+
+                    // Parse gloss annotations and get clean text for TTS
+                    const segments = this.parseGlossAnnotations(trimmedSentence);
+                    const cleanText = this.stripGlossAnnotations(trimmedSentence);
+
+                    // Split clean sentence into characters (including spaces and punctuation)
+                    const charsInSentence = cleanText.split('');
+
+                    // Add characters to our main chars array
+                    this.chars.push(...charsInSentence);
+
+                    // Store sentence info for TTS (using clean text without annotations)
+                    this.sentences.push({
+                        text: cleanText,
+                        startCharIndex: charIndex,
+                        endCharIndex: charIndex + charsInSentence.length - 1
+                    });
+
+                    // Create HTML from parsed segments
+                    let sentenceCharsHtml = '';
+                    segments.forEach(segment => {
+                        if (segment.type === 'gloss') {
+                            const glossChars = segment.word.split('');
+                            const glossCharsHtml = glossChars.map((char) =>
+                                `<span class="char" data-index="${charIndex++}" data-sentence="${sentenceIndex}">${this.escapeHtml(char)}</span>`
+                            ).join('');
+                            sentenceCharsHtml += `<span class="gloss-group" data-gloss="${this.escapeAttr(segment.gloss)}">${glossCharsHtml}</span>`;
+                        } else {
+                            const textChars = segment.content.split('');
+                            sentenceCharsHtml += textChars.map((char) =>
+                                `<span class="char" data-index="${charIndex++}" data-sentence="${sentenceIndex}">${this.escapeHtml(char)}</span>`
+                            ).join('');
+                        }
+                    });
+
+                    // Add paragraph breaks every 2 sentences
+                    if (index % 2 === 0) {
+                        paragraphsHtml += `<p>${sentenceCharsHtml}。 `;
+                    } else {
+                        paragraphsHtml += `${sentenceCharsHtml}。 `;
+                    }
+
+                    if ((index + 1) % 2 === 0 || index === allRawSentences.length - 1) {
+                        paragraphsHtml += `</p>`;
+                    }
+
+                    sentenceIndex++;
+                });
+
+                this.readingArea.innerHTML = paragraphsHtml;
+                this.currentCharIndex = 0;
+                this.currentSentenceIndex = 0;
+
+                // Reset timing adjustment for new text
+                this.actualTimingAdjustment = 1.0;
+
+                // Clear any existing highlighting timers
+                if (this.charHighlightTimer) {
+                    clearInterval(this.charHighlightTimer);
+                    this.charHighlightTimer = null;
+                }
+
+                this.updateProgress();
+                this.updateSentenceIndicator();
+                this.updateStatus(`準備閱讀 ${this.sentences.length} 個句子 (${this.chars.length} 個字) / Ready to read ${this.sentences.length} sentences (${this.chars.length} characters)`);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            escapeAttr(text) {
+                return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            stripGlossAnnotations(text) {
+                return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+            }
+
+            parseGlossAnnotations(text) {
+                const segments = [];
+                const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+                let lastIndex = 0;
+                let match;
+
+                while ((match = regex.exec(text)) !== null) {
+                    if (match.index > lastIndex) {
+                        segments.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+                    }
+                    segments.push({ type: 'gloss', word: match[1], gloss: match[2] });
+                    lastIndex = regex.lastIndex;
+                }
+
+                if (lastIndex < text.length) {
+                    segments.push({ type: 'text', content: text.slice(lastIndex) });
+                }
+
+                return segments;
+            }
+
+            extractFlashcards() {
+                const text = this.textArea.value.trim();
+                if (!text) {
+                    this.updateStatus('請先輸入文字 Please enter text first');
+                    return;
+                }
+
+                const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+                const pairs = [];
+                let match;
+
+                while ((match = regex.exec(text)) !== null) {
+                    pairs.push({ chinese: match[1], english: match[2] });
+                }
+
+                if (pairs.length === 0) {
+                    this.updateStatus('找不到詞卡 No [word](gloss) annotations found');
+                    this.flashcardSection.classList.remove('visible');
+                    return;
+                }
+
+                const flashcardText = pairs.map(p => `${p.chinese}\n${p.english}`).join('\n\n');
+                this.flashcardOutput.textContent = flashcardText;
+                this.flashcardSection.classList.add('visible');
+                this.updateStatus(`提取了 ${pairs.length} 張詞卡 Extracted ${pairs.length} flashcards`);
+            }
+
+            copyFlashcards() {
+                const text = this.flashcardOutput.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    this.updateStatus('詞卡已複製 Flashcards copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    this.updateStatus('複製失敗 Failed to copy flashcards');
+                });
+            }
+
+            navigateToSentence(direction) {
+                if (!this.sentences || this.sentences.length === 0) return;
+
+                const newSentenceIndex = this.currentSentenceIndex + direction;
+                if (newSentenceIndex >= 0 && newSentenceIndex < this.sentences.length) {
+                    this.stop();
+
+                    this.currentSentenceIndex = newSentenceIndex;
+                    this.currentCharIndex = this.sentences[this.currentSentenceIndex].startCharIndex;
+
+                    this.updateProgress();
+                    this.updateSentenceIndicator();
+                    this.clearHighlights();
+
+                    this.updateStatus(`導航至句子 ${this.currentSentenceIndex + 1} / ${this.sentences.length}`);
+                }
+            }
+
+            handleSentenceNumberInput(digit) {
+                // Clear existing timeout first
+                if (this.sentenceInputTimeoutRef) {
+                    clearTimeout(this.sentenceInputTimeoutRef);
+                }
+
+                // Update the input string
+                this.sentenceNumberInput += digit;
+                console.log(`Sentence input: "${this.sentenceNumberInput}" (added digit: ${digit})`);
+
+                // Update sentence indicator to show current input
+                const tempIndicator = this.sentenceIndicator.textContent;
+                this.sentenceIndicator.textContent = `輸入句子號: ${this.sentenceNumberInput} (1.5秒後跳轉 / will jump in 1.5s)`;
+
+                // Set new timeout for 1.5 seconds
+                this.sentenceInputTimeoutRef = setTimeout(() => {
+                    const sentenceNumber = parseInt(this.sentenceNumberInput) - 1; // Decrement by 1
+
+                    if (!this.sentences || this.sentences.length === 0) {
+                        console.warn('No sentences available');
+                        this.sentenceIndicator.textContent = '無文字 No text loaded';
+                        this.sentenceNumberInput = '';
+                        return;
+                    }
+
+                    if (sentenceNumber >= 0 && sentenceNumber < this.sentences.length) {
+                        console.log(`Jumping to sentence ${sentenceNumber}`);
+                        console.log(`Sentence text: "${this.sentences[sentenceNumber].text}"`);
+
+                        // Copy sentence text with gloss prompt to clipboard
+                        const sentenceText = this.sentences[sentenceNumber].text;
+                        const glossPrompt = `Given this Chinese text "${sentenceText}" please show the original Chinese and then provide a detailed breakdown with pinyin and English translations for each word/phrase.`;
+
+                        navigator.clipboard.writeText(glossPrompt).then(() => {
+                            console.log('Gloss prompt copied to clipboard');
+                        }).catch(err => {
+                            console.error('Failed to copy to clipboard:', err);
+                        });
+
+                        // Stop any ongoing speech
+                        this.stop();
+
+                        // Update sentence position
+                        this.currentSentenceIndex = sentenceNumber;
+                        this.currentCharIndex = this.sentences[this.currentSentenceIndex].startCharIndex;
+
+                        // Update UI
+                        this.updateProgress();
+                        this.updateSentenceIndicator();
+                        this.clearHighlights();
+
+                        this.updateStatus(`跳至句子 ${sentenceNumber + 1} / ${this.sentences.length} / Jumped to sentence ${sentenceNumber + 1}`);
+                    } else {
+                        console.warn(`Invalid sentence number: ${sentenceNumber + 1}. Valid range: 1-${this.sentences.length}`);
+                        this.updateStatus(`無效句子號 Invalid sentence #: ${sentenceNumber + 1}. 有效範圍 Valid: 1-${this.sentences.length}`);
+                        this.updateSentenceIndicator();
+                    }
+
+                    // Reset the input after processing
+                    this.sentenceNumberInput = '';
+                }, 1500);
+            }
+
+            updateSentenceIndicator() {
+                if (!this.sentences || this.sentences.length === 0) {
+                    this.sentenceIndicator.textContent = '準備閱讀 Ready to read...';
+                    this.prevSentenceButton.disabled = true;
+                    this.nextSentenceButton.disabled = true;
+                    return;
+                }
+
+                if (this.currentSentenceIndex >= this.sentences.length) {
+                    this.currentSentenceIndex = this.sentences.length - 1;
+                }
+                if (this.currentSentenceIndex < 0) {
+                    this.currentSentenceIndex = 0;
+                }
+
+                const currentSentence = this.sentences[this.currentSentenceIndex];
+                if (!currentSentence) {
+                    this.sentenceIndicator.textContent = '準備閱讀 Ready to read...';
+                    return;
+                }
+
+                const firstChars = currentSentence.text.substring(0, 3);
+
+                this.sentenceIndicator.textContent = `${this.currentSentenceIndex + 1}/${this.sentences.length}: ${firstChars}...`;
+
+                this.prevSentenceButton.disabled = this.currentSentenceIndex === 0;
+                this.nextSentenceButton.disabled = this.currentSentenceIndex === this.sentences.length - 1;
+            }
+
+            togglePlayPause() {
+                if (this.isPlaying) {
+                    this.pause();
+                    this.stop();
+                } else {
+                    this.play();
+                }
+            }
+
+            play() {
+                if (!this.chars.length) {
+                    this.updateStatus('請先輸入文字 Please enter some text first');
+                    return;
+                }
+
+                if (!this.sentences || this.sentences.length === 0) {
+                    this.updateStatus('找不到句子 No sentences found to read');
+                    return;
+                }
+
+                if (this.isPaused) {
+                    this.resumeReading();
+                } else {
+                    this.startReading();
+                }
+            }
+
+            startReading() {
+                this.stop();
+
+                setTimeout(() => {
+                    this.isPlaying = true;
+                    this.isPaused = false;
+                    this.updateButtonStates();
+                    this.speakCurrentSentence();
+                }, 100);
+            }
+
+            resumeReading() {
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                    this.isPaused = false;
+                    this.updateButtonStates();
+                    this.updateStatus('繼續播放 Resumed reading');
+                }
+            }
+
+            pause() {
+                if (this.isPlaying) {
+                    window.speechSynthesis.pause();
+                    this.isPaused = true;
+                    this.updateButtonStates();
+                    this.updateStatus('已暫停 Paused');
+                }
+            }
+
+            stop() {
+                window.speechSynthesis.cancel();
+
+                if (this.charHighlightTimer) {
+                    clearInterval(this.charHighlightTimer);
+                    this.charHighlightTimer = null;
+                }
+
+                if (this.utterance) {
+                    this.utterance.onend = null;
+                    this.utterance.onerror = null;
+                    this.utterance = null;
+                }
+
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.clearHighlights();
+                this.updateButtonStates();
+
+                if (arguments.length === 0) {
+                    this.updateStatus('已停止 Stopped');
+                }
+            }
+
+            async reset() {
+                this.stop();
+
+                const shouldPaste = confirm('從剪貼板貼上新內容？\nPaste new content from clipboard?\n\nYes = Paste from clipboard\nNo = Reset to sentence 1');
+
+                if (shouldPaste) {
+                    await this.pasteFromClipboard();
+                } else {
+                    this.currentCharIndex = 0;
+                    this.currentSentenceIndex = 0;
+                    this.updateProgress();
+                    this.updateSentenceIndicator();
+                    this.updateStatus('已重設至開頭 Reset to beginning');
+                }
+            }
+
+            jumpToChar(charIndex) {
+                if (charIndex >= 0 && charIndex < this.chars.length) {
+                    this.stop();
+                    this.currentCharIndex = charIndex;
+
+                    // Find which sentence this char belongs to
+                    for (let i = 0; i < this.sentences.length; i++) {
+                        const sentence = this.sentences[i];
+                        if (charIndex >= sentence.startCharIndex && charIndex <= sentence.endCharIndex) {
+                            this.currentSentenceIndex = i;
+                            break;
+                        }
+                    }
+
+                    this.updateProgress();
+                    this.updateSentenceIndicator();
+                    this.updateStatus(`跳至字符 ${charIndex + 1} / Jumped to character ${charIndex + 1}`);
+                }
+            }
+
+            speakCurrentSentence() {
+                if (this.currentSentenceIndex >= this.sentences.length) {
+                    this.onReadingComplete();
+                    return;
+                }
+
+                const sentence = this.sentences[this.currentSentenceIndex];
+
+                this.updateSentenceIndicator();
+                this.updateProgress();
+                this.updateStatus(`閱讀句子 ${this.currentSentenceIndex + 1} / ${this.sentences.length}`);
+
+                this.sentenceStartTime = performance.now();
+
+                // Start character highlighting
+                this.startCharHighlighting(sentence);
+
+                // Filter sentence text to only include Chinese characters and punctuation
+                // Keep only Chinese characters (Unicode range \u4e00-\u9fff) and Chinese punctuation
+                const chineseOnlyText = sentence.text.replace(/[^\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '').trim();
+
+                console.log('📝 Original text:', sentence.text);
+                console.log('🇨🇳 Filtered Chinese only:', chineseOnlyText);
+
+                this.utterance = new SpeechSynthesisUtterance(chineseOnlyText);
+                this.utterance.rate = parseFloat(this.speedSelect.value);
+                this.utterance.pitch = 1;
+                this.utterance.volume = 1;
+
+                // Get selected language (Mandarin or Cantonese)
+                const selectedLang = this.mandarinRadio.checked ? 'zh-CN' : 'zh-HK';
+                this.utterance.lang = selectedLang;
+
+                console.log('🎤 Selected language:', selectedLang);
+                console.log('📻 Radio buttons - Mandarin:', this.mandarinRadio.checked, 'Cantonese:', this.cantoneseRadio.checked);
+
+                // Voice selection for Chinese - prioritize Google voices
+                const voices = speechSynthesis.getVoices();
+                console.log('🔊 Total voices available:', voices.length);
+
+                // Debug: Show all Chinese voices
+                const allChineseVoices = voices.filter(v => v.lang.startsWith('zh'));
+                console.log('🇨🇳 All Chinese voices:', allChineseVoices.map(v => `${v.name} (${v.lang})`));
+
+                if (voices.length > 0) {
+                    // Try to find Google voices first - EXACT match
+                    let chineseVoice = voices.find(voice =>
+                        voice.lang === selectedLang && voice.name.includes('Google')
+                    );
+                    console.log('🔍 Google voice search for', selectedLang, ':', chineseVoice ? chineseVoice.name : 'NOT FOUND');
+
+                    // If no exact Google voice, try Enhanced/Premium voices - EXACT match
+                    if (!chineseVoice) {
+                        chineseVoice = voices.find(voice =>
+                            voice.lang === selectedLang &&
+                            (voice.name.includes('Enhanced') || voice.name.includes('Premium'))
+                        );
+                        console.log('🔍 Enhanced/Premium voice search:', chineseVoice ? chineseVoice.name : 'NOT FOUND');
+                    }
+
+                    // Fall back to any voice with EXACT language match
+                    if (!chineseVoice) {
+                        chineseVoice = voices.find(voice => voice.lang === selectedLang);
+                        console.log('🔍 Any exact match voice search:', chineseVoice ? chineseVoice.name : 'NOT FOUND');
+                    }
+
+                    // Last resort: startsWith match (for variations like zh-CN-Liaoning)
+                    if (!chineseVoice) {
+                        chineseVoice = voices.find(voice => voice.lang.startsWith(selectedLang));
+                        console.log('🔍 StartsWith match voice search:', chineseVoice ? chineseVoice.name : 'NOT FOUND');
+                    }
+
+                    if (chineseVoice) {
+                        this.utterance.voice = chineseVoice;
+                        console.log('✅ Using voice:', chineseVoice.name, chineseVoice.lang);
+                    } else {
+                        console.log('❌ No Chinese voice found, using default');
+                    }
+                }
+
+                this.utterance.onend = () => {
+                    if (this.charHighlightTimer) {
+                        clearInterval(this.charHighlightTimer);
+                        this.charHighlightTimer = null;
+                    }
+
+                    if (this.isPlaying && !this.isPaused) {
+                        this.currentSentenceIndex++;
+
+                        setTimeout(() => {
+                            if (this.isPlaying && !this.isPaused) {
+                                this.speakCurrentSentence();
+                            }
+                        }, 300);
+                    }
+                };
+
+                this.utterance.onerror = (event) => {
+                    console.error('Speech synthesis error:', event);
+
+                    if (this.charHighlightTimer) {
+                        clearInterval(this.charHighlightTimer);
+                        this.charHighlightTimer = null;
+                    }
+
+                    this.updateStatus(`語音錯誤 Speech error - trying to continue`);
+                    if (this.isPlaying && !this.isPaused) {
+                        this.currentSentenceIndex++;
+                        setTimeout(() => {
+                            if (this.isPlaying && !this.isPaused) {
+                                this.speakCurrentSentence();
+                            }
+                        }, 500);
+                    }
+                };
+
+                speechSynthesis.cancel();
+
+                setTimeout(() => {
+                    if (this.isPlaying && !this.isPaused && this.utterance) {
+                        speechSynthesis.speak(this.utterance);
+                    }
+                }, 150);
+            }
+
+            startCharHighlighting(sentence) {
+                if (this.charHighlightTimer) {
+                    clearInterval(this.charHighlightTimer);
+                    this.charHighlightTimer = null;
+                }
+
+                // Chinese characters per minute at 1x speed
+                const baseCharsPerMinute = 250;
+                const currentRate = parseFloat(this.speedSelect.value);
+                const actualCharsPerMinute = baseCharsPerMinute * currentRate;
+                let millisecondsPerChar = (60 * 1000) / actualCharsPerMinute;
+
+                millisecondsPerChar *= this.actualTimingAdjustment;
+
+                const sentenceStartupDelay = 150;
+                const charProcessingAdjustment = 0.85;
+                const adjustedMillisecondsPerChar = millisecondsPerChar * charProcessingAdjustment;
+
+                const charsInSentence = sentence.endCharIndex - sentence.startCharIndex + 1;
+                let currentCharInSentence = 0;
+
+                setTimeout(() => {
+                    if (!this.isPlaying || this.isPaused) return;
+
+                    const globalCharIndex = sentence.startCharIndex + currentCharInSentence;
+                    this.highlightChar(globalCharIndex);
+                    currentCharInSentence++;
+
+                    this.charHighlightTimer = setInterval(() => {
+                        if (!this.isPlaying || this.isPaused || currentCharInSentence >= charsInSentence) {
+                            if (this.charHighlightTimer) {
+                                clearInterval(this.charHighlightTimer);
+                                this.charHighlightTimer = null;
+                            }
+                            return;
+                        }
+
+                        const globalCharIndex = sentence.startCharIndex + currentCharInSentence;
+                        this.highlightChar(globalCharIndex);
+                        currentCharInSentence++;
+                    }, adjustedMillisecondsPerChar);
+
+                }, sentenceStartupDelay);
+            }
+
+            highlightChar(charIndex) {
+                this.clearHighlights();
+
+                const charElements = this.readingArea.querySelectorAll('.char');
+                if (charElements[charIndex]) {
+                    charElements[charIndex].classList.add('current');
+                    this.currentCharIndex = charIndex;
+
+                    // Auto-scroll to keep current character visible
+                    charElements[charIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    if (this.charHighlightTimer) {
+                        clearInterval(this.charHighlightTimer);
+                        this.charHighlightTimer = null;
+                    }
+                    return;
+                }
+            }
+
+            clearHighlights() {
+                const charElements = this.readingArea.querySelectorAll('.char');
+                charElements.forEach(el => {
+                    el.classList.remove('current');
+                });
+            }
+
+            updateProgress() {
+                const progress = this.sentences && this.sentences.length > 0 ? (this.currentSentenceIndex / this.sentences.length) * 100 : 0;
+                this.progressFill.style.width = `${progress}%`;
+            }
+
+            updateSpeed() {
+                this.updateStatus(`速度已改為 ${this.speedSelect.value}x / Speed changed to ${this.speedSelect.value}x`);
+            }
+
+            updateButtonStates() {
+                if (this.isPlaying) {
+                    this.playButton.textContent = '⏸️ 暫停 Pause';
+                    this.playButton.classList.remove('success-button');
+                    this.playButton.classList.add('secondary-button');
+                } else {
+                    this.playButton.textContent = '▶️ 播放 Play';
+                    this.playButton.classList.remove('secondary-button');
+                    this.playButton.classList.add('success-button');
+                }
+                this.stopButton.disabled = !this.isPlaying;
+            }
+
+            updateStatus(message) {
+                this.statusDisplay.textContent = message;
+            }
+
+            onReadingComplete() {
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.clearHighlights();
+                this.updateButtonStates();
+                this.updateProgress();
+                this.updateStatus('閱讀完成！ Reading completed!');
+            }
+        }
+
+        // ============ DROPBOX INTEGRATION ============
+        let dropboxAccessToken = null;
+        let dropboxAppKey = '';
+        let currentDropboxFilePath = '';
+        let currentDropboxFileName = '';
+        let dbxSearchResults = [];
+        let dbxFolderPath = '';
+        let dbxFolderFiles = [];
+        let appInstance = null;
+
+        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+        function generateCodeVerifier() {
+            const array = new Uint8Array(64);
+            crypto.getRandomValues(array);
+            return btoa(String.fromCharCode(...array))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        async function generateCodeChallenge(verifier) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(verifier);
+            const digest = await crypto.subtle.digest('SHA-256', data);
+            return btoa(String.fromCharCode(...new Uint8Array(digest)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        async function fetchDropboxAppKey() {
+            if (isLocalhost) {
+                return localStorage.getItem('dropbox-app-key') || '';
+            }
+            try {
+                const res = await fetch('/api/dropbox-key');
+                const data = await res.json();
+                return data.key || '';
+            } catch {
+                return '';
+            }
+        }
+
+        async function openDropboxModal() {
+            document.getElementById('dbxModal').style.display = 'flex';
+            if (isLocalhost) {
+                document.getElementById('dbxAppKeyRow').style.display = 'flex';
+                const savedKey = localStorage.getItem('dropbox-app-key');
+                if (savedKey) document.getElementById('dbxAppKeyInput').value = savedKey;
+            } else {
+                document.getElementById('dbxAppKeyRow').style.display = 'none';
+            }
+            if (dropboxAccessToken) {
+                document.getElementById('dbxSignInSection').style.display = 'none';
+                document.getElementById('dbxSearchSection').style.display = 'block';
+            } else {
+                document.getElementById('dbxSignInSection').style.display = 'block';
+                document.getElementById('dbxSearchSection').style.display = 'none';
+            }
+        }
+
+        function closeDropboxModal() {
+            document.getElementById('dbxModal').style.display = 'none';
+        }
+
+        function setDbxStatus(msg) {
+            document.getElementById('dbxStatus').textContent = msg;
+        }
+
+        async function handleDropboxSignIn() {
+            let appKey;
+            if (isLocalhost) {
+                appKey = document.getElementById('dbxAppKeyInput').value.trim();
+                if (!appKey) { alert('Please enter a Dropbox App Key'); return; }
+                localStorage.setItem('dropbox-app-key', appKey);
+            } else {
+                appKey = await fetchDropboxAppKey();
+                if (!appKey) { alert('Dropbox App Key not configured on server'); return; }
+            }
+            dropboxAppKey = appKey;
+            const verifier = generateCodeVerifier();
+            const challenge = await generateCodeChallenge(verifier);
+            sessionStorage.setItem('dropbox_code_verifier', verifier);
+            const redirectUri = window.location.origin + window.location.pathname;
+            const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${appKey}&response_type=code&code_challenge=${challenge}&code_challenge_method=S256&redirect_uri=${encodeURIComponent(redirectUri)}&token_access_type=online`;
+            window.location.href = authUrl;
+        }
+
+        async function handleDropboxOAuthRedirect() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (!code) return;
+            const verifier = sessionStorage.getItem('dropbox_code_verifier');
+            const appKey = await fetchDropboxAppKey();
+            if (!verifier || !appKey) return;
+            dropboxAppKey = appKey;
+            const redirectUri = window.location.origin + window.location.pathname;
+            const body = new URLSearchParams({
+                code, grant_type: 'authorization_code',
+                client_id: appKey, redirect_uri: redirectUri, code_verifier: verifier,
+            });
+            try {
+                const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString(),
+                });
+                const data = await res.json();
+                if (data.access_token) {
+                    dropboxAccessToken = data.access_token;
+                    sessionStorage.removeItem('dropbox_code_verifier');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    openDropboxModal();
+                } else {
+                    console.error('Dropbox auth failed:', data);
+                }
+            } catch (err) {
+                console.error('Dropbox auth error:', err);
+            }
+        }
+
+        async function handleDropboxSignOut() {
+            if (dropboxAccessToken) {
+                try {
+                    await fetch('https://api.dropboxapi.com/2/auth/token/revoke', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${dropboxAccessToken}` },
+                    });
+                } catch { /* ignore */ }
+            }
+            dropboxAccessToken = null;
+            currentDropboxFilePath = '';
+            currentDropboxFileName = '';
+            dbxSearchResults = [];
+            dbxFolderPath = '';
+            dbxFolderFiles = [];
+            document.getElementById('dbxSaveBtn').style.display = 'none';
+            document.getElementById('dbxSignInSection').style.display = 'block';
+            document.getElementById('dbxSearchSection').style.display = 'none';
+            document.getElementById('dbxResults').innerHTML = '';
+            document.getElementById('dbxBackNav').style.display = 'none';
+            setDbxStatus('Signed out');
+        }
+
+        async function searchDropboxFiles(query) {
+            if (!query.trim() || !dropboxAccessToken) return;
+            setDbxStatus('Searching...');
+            dbxFolderPath = '';
+            dbxFolderFiles = [];
+            document.getElementById('dbxBackNav').style.display = 'none';
+            try {
+                const response = await fetch('https://api.dropboxapi.com/2/files/search_v2', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${dropboxAccessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query, options: { max_results: 20 } }),
+                });
+                if (!response.ok) throw new Error('Search failed');
+                const data = await response.json();
+                dbxSearchResults = (data.matches || []).map(m => {
+                    const metadata = m.metadata?.metadata || m.metadata;
+                    return {
+                        name: metadata.name,
+                        path: metadata.path_lower || metadata.path_display,
+                        isFolder: metadata['.tag'] === 'folder',
+                    };
+                });
+                setDbxStatus(`Found ${dbxSearchResults.length} results`);
+                renderDbxResults(dbxSearchResults);
+            } catch (error) {
+                setDbxStatus('Error: ' + error.message);
+            }
+        }
+
+        async function searchDropboxFolders(query) {
+            if (!query.trim() || !dropboxAccessToken) return;
+            setDbxStatus('Searching folders...');
+            dbxFolderPath = '';
+            dbxFolderFiles = [];
+            document.getElementById('dbxBackNav').style.display = 'none';
+            try {
+                const response = await fetch('https://api.dropboxapi.com/2/files/search_v2', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${dropboxAccessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        options: { max_results: 20, file_categories: [{ '.tag': 'folder' }] },
+                    }),
+                });
+                if (!response.ok) throw new Error('Folder search failed');
+                const data = await response.json();
+                const folders = (data.matches || [])
+                    .map(m => m.metadata?.metadata || m.metadata)
+                    .filter(m => m['.tag'] === 'folder')
+                    .map(m => ({ name: m.name, path: m.path_lower || m.path_display, isFolder: true }));
+                dbxSearchResults = folders;
+                setDbxStatus(`Found ${folders.length} folders`);
+                renderDbxResults(folders);
+            } catch (error) {
+                setDbxStatus('Error: ' + error.message);
+            }
+        }
+
+        async function loadDropboxFolder(path) {
+            setDbxStatus('Loading folder...');
+            try {
+                const response = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${dropboxAccessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ path: path }),
+                });
+                if (!response.ok) throw new Error('Failed to list folder');
+                const data = await response.json();
+                const entries = (data.entries || []).map(entry => ({
+                    name: entry.name,
+                    path: entry.path_lower || entry.path_display,
+                    isFolder: entry['.tag'] === 'folder',
+                }));
+                entries.sort((a, b) => {
+                    if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
+                    return a.name.localeCompare(b.name);
+                });
+                dbxFolderPath = path;
+                dbxFolderFiles = entries;
+                document.getElementById('dbxBackNav').style.display = 'flex';
+                document.getElementById('dbxFolderPath').textContent = path;
+                setDbxStatus(`${entries.length} items in ${path}`);
+                renderDbxResults(entries);
+            } catch (error) {
+                setDbxStatus('Error: ' + error.message);
+            }
+        }
+
+        async function loadDropboxFile(path, name) {
+            setDbxStatus(`Loading ${name}...`);
+            try {
+                const response = await fetch('https://content.dropboxapi.com/2/files/download', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${dropboxAccessToken}`,
+                        'Dropbox-API-Arg': JSON.stringify({ path: path }),
+                    },
+                });
+                if (!response.ok) throw new Error('Download failed');
+                const content = await response.text();
+
+                // Load into textarea and trigger reading area update
+                const textarea = document.getElementById('textArea');
+                textarea.value = content;
+                if (appInstance) appInstance.updateReadingArea();
+
+                currentDropboxFilePath = path;
+                currentDropboxFileName = name;
+                document.getElementById('dbxSaveBtn').style.display = 'flex';
+                closeDropboxModal();
+                setDbxStatus('');
+            } catch (error) {
+                setDbxStatus('Error: ' + error.message);
+            }
+        }
+
+        async function saveToDropbox() {
+            if (!currentDropboxFilePath || !dropboxAccessToken) return;
+            const btn = document.getElementById('dbxSaveBtn');
+            const origText = btn.innerHTML;
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+            try {
+                const content = document.getElementById('textArea').value;
+                const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${dropboxAccessToken}`,
+                        'Dropbox-API-Arg': JSON.stringify({
+                            path: currentDropboxFilePath,
+                            mode: { '.tag': 'overwrite' },
+                            mute: true,
+                        }),
+                        'Content-Type': 'application/octet-stream',
+                    },
+                    body: content,
+                });
+                if (response.ok) {
+                    btn.textContent = 'Saved!';
+                    setTimeout(() => { btn.innerHTML = origText; }, 1500);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error_summary || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                alert('Error saving to Dropbox: ' + error.message);
+                btn.innerHTML = origText;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function renderDbxResults(items) {
+            const container = document.getElementById('dbxResults');
+            if (items.length === 0) {
+                container.innerHTML = '<div style="padding: 15px; color: #888; text-align: center;">No results</div>';
+                return;
+            }
+            container.innerHTML = items.map(item => {
+                const icon = item.isFolder ? '\uD83D\uDCC1' : '\uD83D\uDCC4';
+                const pathHtml = item.isFolder && !dbxFolderPath
+                    ? `<div class="dbx-result-path">${item.path}</div>` : '';
+                return `
+                    <div class="dbx-result-item" data-path="${item.path}" data-name="${item.name}" data-folder="${item.isFolder}">
+                        <span class="dbx-result-icon">${icon}</span>
+                        <div class="dbx-result-info">
+                            <div class="dbx-result-name">${item.name}</div>
+                            ${pathHtml}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function handleDbxResultClick(e) {
+            const item = e.target.closest('.dbx-result-item');
+            if (!item) return;
+            const path = item.dataset.path;
+            const name = item.dataset.name;
+            const isFolder = item.dataset.folder === 'true';
+            if (isFolder) { loadDropboxFolder(path); } else { loadDropboxFile(path, name); }
+        }
+
+        function handleDbxSearch() {
+            const query = document.getElementById('dbxSearchInput').value;
+            const mode = document.querySelector('input[name="dbxSearchMode"]:checked').value;
+            if (mode === 'file') { searchDropboxFiles(query); } else { searchDropboxFolders(query); }
+        }
+
+        function handleDbxBackToResults() {
+            dbxFolderPath = '';
+            dbxFolderFiles = [];
+            document.getElementById('dbxBackNav').style.display = 'none';
+            renderDbxResults(dbxSearchResults);
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            handleDropboxOAuthRedirect();
+
+            speechSynthesis.addEventListener('voiceschanged', () => {
+                speechSynthesis.getVoices();
+            });
+
+            appInstance = new ChineseTextToSpeech();
+
+            // Dropbox event listeners
+            document.getElementById('dropboxBtn').addEventListener('click', openDropboxModal);
+            document.getElementById('dbxCloseBtn').addEventListener('click', closeDropboxModal);
+            document.getElementById('dbxSignInBtn').addEventListener('click', handleDropboxSignIn);
+            document.getElementById('dbxSignOutBtn').addEventListener('click', handleDropboxSignOut);
+            document.getElementById('dbxSearchBtn').addEventListener('click', handleDbxSearch);
+            document.getElementById('dbxSearchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleDbxSearch();
+            });
+            document.getElementById('dbxResults').addEventListener('click', handleDbxResultClick);
+            document.getElementById('dbxBackBtn').addEventListener('click', handleDbxBackToResults);
+            document.getElementById('dbxSaveBtn').addEventListener('click', saveToDropbox);
+            document.getElementById('dbxModal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) closeDropboxModal();
+            });
+        });
+    </script>
+</body>
+</html>

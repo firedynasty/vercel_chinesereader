@@ -1,0 +1,9 @@
+{
+  "name": "vercel-chinesereader",
+  "version": "1.0.0",
+  "description": "Chinese text-to-speech reader with Dropbox integration",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve ."
+  }
+}
