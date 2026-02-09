@@ -1077,6 +1077,13 @@
 
                 navigator.clipboard.writeText(text).then(() => {
                     const copied = endIndex - startIndex;
+                    // Advance to the sentence after what was copied (for count > 1)
+                    if (count > 1 && endIndex < this.sentences.length) {
+                        this.currentSentenceIndex = endIndex;
+                        this.currentCharIndex = this.sentences[endIndex].startCharIndex;
+                        this.updateProgress();
+                        this.updateSentenceIndicator();
+                    }
                     this.updateStatus(`已複製 ${copied} 句 Copied ${copied} sentence${copied > 1 ? 's' : ''}`);
                 }).catch(err => {
                     console.error('Failed to copy:', err);
