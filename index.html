@@ -479,7 +479,8 @@
             <button class="nav-button" id="nextSentenceButton">▶</button>
             <button class="success-button" id="playButton" style="margin-left: 1rem;">▶️ 播放 Play</button>
             <button class="secondary-button" id="stopButton" disabled style="margin-left: 0.5rem;">⏹️ 停止 Stop</button>
-            <button class="secondary-button" id="resetButton" style="margin-left: 0.5rem;">🔄 重設 Reset</button>
+            <button class="secondary-button" id="copySentenceButton" style="margin-left: 0.5rem;">📋 Copy 1</button>
+            <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem;">📋 Copy 3</button>
         </div>
 
         <div class="progress-bar">
@@ -540,7 +541,8 @@
 
                 this.playButton = document.getElementById('playButton');
                 this.stopButton = document.getElementById('stopButton');
-                this.resetButton = document.getElementById('resetButton');
+                this.copySentenceButton = document.getElementById('copySentenceButton');
+                this.copyThreeButton = document.getElementById('copyThreeButton');
                 this.speedSelect = document.getElementById('speedSelect');
 
                 this.mandarinRadio = document.getElementById('mandarinRadio');
@@ -582,7 +584,8 @@
                 // Playback controls
                 this.playButton.addEventListener('click', () => this.togglePlayPause());
                 this.stopButton.addEventListener('click', () => this.stop());
-                this.resetButton.addEventListener('click', () => this.reset());
+                this.copySentenceButton.addEventListener('click', () => this.copySentences(1));
+                this.copyThreeButton.addEventListener('click', () => this.copySentences(3));
 
                 // Speed changes
                 this.speedSelect.addEventListener('change', () => this.updateSpeed());
@@ -614,10 +617,10 @@
                             this.play();
                         }
                     }
-                    // '`' key to reset
+                    // '`' key to copy current sentence
                     if (e.key === '`') {
                         e.preventDefault();
-                        this.reset();
+                        this.copySentences(1);
                     }
                     // Digit keys 0-9 for sentence number input
                     if (e.key >= '0' && e.key <= '9' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
@@ -693,7 +696,12 @@
             clearText() {
                 this.textArea.value = '';
                 this.readingArea.innerHTML = '<p style="text-align: center; color: #666;">文字將在此顯示並逐字高亮 / Text will appear here with character-by-character highlighting</p>';
-                this.reset();
+                this.currentCharIndex = 0;
+                this.currentSentenceIndex = 0;
+                this.sentences = [];
+                this.chars = [];
+                this.updateProgress();
+                this.updateSentenceIndicator();
                 this.updateStatus('已清空 Text cleared');
             }
 
@@ -1053,20 +1061,27 @@
                 }
             }
 
-            async reset() {
-                this.stop();
-
-                const shouldPaste = confirm('從剪貼板貼上新內容？\nPaste new content from clipboard?\n\nYes = Paste from clipboard\nNo = Reset to sentence 1');
-
-                if (shouldPaste) {
-                    await this.pasteFromClipboard();
-                } else {
-                    this.currentCharIndex = 0;
-                    this.currentSentenceIndex = 0;
-                    this.updateProgress();
-                    this.updateSentenceIndicator();
-                    this.updateStatus('已重設至開頭 Reset to beginning');
+            copySentences(count) {
+                if (!this.sentences || this.sentences.length === 0) {
+                    this.updateStatus('無文字 No text to copy');
+                    return;
                 }
+
+                const startIndex = this.currentSentenceIndex;
+                const endIndex = Math.min(startIndex + count, this.sentences.length);
+                const lines = [];
+                for (let i = startIndex; i < endIndex; i++) {
+                    lines.push(this.sentences[i].text);
+                }
+                const text = lines.join('\n');
+
+                navigator.clipboard.writeText(text).then(() => {
+                    const copied = endIndex - startIndex;
+                    this.updateStatus(`已複製 ${copied} 句 Copied ${copied} sentence${copied > 1 ? 's' : ''}`);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    this.updateStatus('複製失敗 Failed to copy');
+                });
             }
 
             jumpToChar(charIndex) {
