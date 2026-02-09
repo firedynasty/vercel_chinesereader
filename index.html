@@ -455,6 +455,9 @@
             <button class="purple-button" id="extractFlashcardsButton">📇 Flashcards</button>
             <button class="teal-button" id="annotateButton">✏️ Annotate</button>
             <button class="db-button" id="dropboxBtn" title="Dropbox">DB</button>
+            <button class="secondary-button" id="copyTextButton" style="font-size: 0.85rem;">📋 Copy</button>
+            <button class="success-button" id="saveButton" style="font-size: 0.85rem;">💾 Save</button>
+            <button class="primary-button" id="loadButton" style="font-size: 0.85rem;">📂 Load</button>
             <button class="dbx-save-btn" id="dbxSaveBtn" style="display: none; padding: 0.75rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Save &#8593; DB</button>
         </div>
 
@@ -649,6 +652,9 @@
                 // Flashcard extraction
                 document.getElementById('extractFlashcardsButton').addEventListener('click', () => this.extractFlashcards());
                 document.getElementById('annotateButton').addEventListener('click', () => this.annotateText());
+                document.getElementById('copyTextButton').addEventListener('click', () => this.copyTextArea());
+                document.getElementById('saveButton').addEventListener('click', () => this.saveToBlob());
+                document.getElementById('loadButton').addEventListener('click', () => this.loadFromBlob());
                 document.getElementById('copyFlashcardsButton').addEventListener('click', () => this.copyFlashcards());
 
                 // Sentence navigation
@@ -869,6 +875,59 @@
                 this.flashcardOutput.textContent = flashcardText;
                 this.flashcardSection.classList.add('visible');
                 this.updateStatus(`提取了 ${pairs.length} 張詞卡 Extracted ${pairs.length} flashcards`);
+            }
+
+            copyTextArea() {
+                const text = this.textArea.value;
+                if (!text) {
+                    this.updateStatus('No text to copy');
+                    return;
+                }
+                navigator.clipboard.writeText(text).then(() => {
+                    this.updateStatus('Copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    this.updateStatus('Failed to copy');
+                });
+            }
+
+            async saveToBlob() {
+                const text = this.textArea.value;
+                if (!text) {
+                    this.updateStatus('No text to save');
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/files', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filename: 'saved-content.txt', content: text }),
+                    });
+                    if (!res.ok) throw new Error('Save failed');
+                    this.updateStatus('Saved to cloud!');
+                } catch (err) {
+                    console.error('Save error:', err);
+                    this.updateStatus('Failed to save');
+                }
+            }
+
+            async loadFromBlob() {
+                try {
+                    this.updateStatus('Loading...');
+                    const res = await fetch('/api/files');
+                    if (!res.ok) throw new Error('Load failed');
+                    const data = await res.json();
+                    if (data.files && data.files['saved-content.txt']) {
+                        this.textArea.value = data.files['saved-content.txt'];
+                        this.updateReadingArea();
+                        this.updateStatus('Loaded from cloud!');
+                    } else {
+                        this.updateStatus('No saved content found');
+                    }
+                } catch (err) {
+                    console.error('Load error:', err);
+                    this.updateStatus('Failed to load');
+                }
             }
 
             annotateText() {
