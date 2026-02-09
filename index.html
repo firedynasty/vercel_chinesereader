@@ -931,9 +931,11 @@
             }
 
             annotateText() {
-                const chinese = prompt('輸入中文 Enter Chinese characters:');
+                // Use highlighted text from textarea if available
+                const selection = this.textArea.value.substring(this.textArea.selectionStart, this.textArea.selectionEnd);
+                const chinese = selection || prompt('輸入中文 Enter Chinese characters:');
                 if (!chinese) return;
-                const english = prompt('輸入英文 Enter English meaning:');
+                const english = prompt(`輸入 "${chinese}" 的英文 Enter English for "${chinese}":`);
                 if (!english) return;
 
                 const text = this.textArea.value;
