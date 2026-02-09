@@ -454,6 +454,7 @@
             <button class="secondary-button" id="clearButton">🗑️ Clear</button>
             <button class="purple-button" id="extractFlashcardsButton">📇 Flashcards</button>
             <button class="teal-button" id="annotateButton">✏️ Annotate</button>
+            <button class="teal-button" id="annotateClipboardButton" style="font-size: 0.85rem;">📋 Annotate Clipboard</button>
             <button class="db-button" id="dropboxBtn" title="Dropbox">DB</button>
             <button class="secondary-button" id="copyTextButton" style="font-size: 0.85rem;">📋 Copy</button>
             <button class="success-button" id="saveButton" style="font-size: 0.85rem;">💾 Save</button>
@@ -653,6 +654,7 @@
                 document.getElementById('extractFlashcardsButton').addEventListener('click', () => this.extractFlashcards());
                 document.getElementById('annotateButton').addEventListener('click', () => this.annotateText());
                 document.getElementById('copyTextButton').addEventListener('click', () => this.copyTextArea());
+                document.getElementById('annotateClipboardButton').addEventListener('click', () => this.annotateFromClipboard());
                 document.getElementById('saveButton').addEventListener('click', () => this.saveToBlob());
                 document.getElementById('loadButton').addEventListener('click', () => this.loadFromBlob());
                 document.getElementById('copyFlashcardsButton').addEventListener('click', () => this.copyFlashcards());
@@ -927,6 +929,42 @@
                 } catch (err) {
                     console.error('Load error:', err);
                     this.updateStatus('Failed to load');
+                }
+            }
+
+            async annotateFromClipboard() {
+                try {
+                    const chinese = await navigator.clipboard.readText();
+                    if (!chinese || !chinese.trim()) {
+                        this.updateStatus('Clipboard is empty');
+                        return;
+                    }
+                    const english = prompt(`輸入 "${chinese.trim()}" 的英文 Enter English for "${chinese.trim()}":`);
+                    if (!english) return;
+
+                    const text = this.textArea.value;
+                    if (!text) {
+                        this.updateStatus('請先輸入文字 Please enter text first');
+                        return;
+                    }
+
+                    const trimmed = chinese.trim();
+                    const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp('(?<!\\[)' + escaped + '(?!\\]|\\([^)]*\\))', 'g');
+                    const newText = text.replace(regex, `[${trimmed}](${english})`);
+
+                    if (newText === text) {
+                        this.updateStatus(`找不到 "${trimmed}" / "${trimmed}" not found`);
+                        return;
+                    }
+
+                    const count = (newText.match(/\[/g) || []).length - (text.match(/\[/g) || []).length;
+                    this.textArea.value = newText;
+                    this.updateReadingArea();
+                    this.updateStatus(`已標註 ${count} 個 "${trimmed}" / Annotated ${count} occurrence(s)`);
+                } catch (err) {
+                    console.error('Clipboard read failed:', err);
+                    this.updateStatus('Failed to read clipboard');
                 }
             }
 
