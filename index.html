@@ -299,6 +299,14 @@
             background-color: #7C3AED;
         }
 
+        .teal-button {
+            background-color: #14B8A6;
+        }
+
+        .teal-button:hover {
+            background-color: #0D9488;
+        }
+
         /* Dropbox Modal Styles */
         .dbx-modal-overlay {
             position: fixed;
@@ -442,9 +450,10 @@
         </div>
 
         <div class="button-group">
-            <button class="primary-button" id="pasteButton">📋 貼上文字 Paste (Esc)</button>
-            <button class="secondary-button" id="clearButton">🗑️ 清空 Clear</button>
-            <button class="purple-button" id="extractFlashcardsButton">📇 提取詞卡 Extract Flashcards</button>
+            <button class="primary-button" id="pasteButton">📋 Paste (Esc)</button>
+            <button class="secondary-button" id="clearButton">🗑️ Clear</button>
+            <button class="purple-button" id="extractFlashcardsButton">📇 Flashcards</button>
+            <button class="teal-button" id="annotateButton">✏️ Annotate</button>
             <button class="db-button" id="dropboxBtn" title="Dropbox">DB</button>
             <button class="dbx-save-btn" id="dbxSaveBtn" style="display: none; padding: 0.75rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Save &#8593; DB</button>
         </div>
@@ -639,6 +648,7 @@
 
                 // Flashcard extraction
                 document.getElementById('extractFlashcardsButton').addEventListener('click', () => this.extractFlashcards());
+                document.getElementById('annotateButton').addEventListener('click', () => this.annotateText());
                 document.getElementById('copyFlashcardsButton').addEventListener('click', () => this.copyFlashcards());
 
                 // Sentence navigation
@@ -859,6 +869,34 @@
                 this.flashcardOutput.textContent = flashcardText;
                 this.flashcardSection.classList.add('visible');
                 this.updateStatus(`提取了 ${pairs.length} 張詞卡 Extracted ${pairs.length} flashcards`);
+            }
+
+            annotateText() {
+                const chinese = prompt('輸入中文 Enter Chinese characters:');
+                if (!chinese) return;
+                const english = prompt('輸入英文 Enter English meaning:');
+                if (!english) return;
+
+                const text = this.textArea.value;
+                if (!text) {
+                    this.updateStatus('請先輸入文字 Please enter text first');
+                    return;
+                }
+
+                // Replace occurrences not already inside an annotation
+                const escaped = chinese.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp('(?<!\\[)' + escaped + '(?!\\]|\\([^)]*\\))', 'g');
+                const newText = text.replace(regex, `[${chinese}](${english})`);
+
+                if (newText === text) {
+                    this.updateStatus(`找不到 "${chinese}" / "${chinese}" not found`);
+                    return;
+                }
+
+                const count = (newText.match(/\[/g) || []).length - (text.match(/\[/g) || []).length;
+                this.textArea.value = newText;
+                this.updateReadingArea();
+                this.updateStatus(`已標註 ${count} 個 "${chinese}" / Annotated ${count} occurrence(s)`);
             }
 
             copyFlashcards() {
