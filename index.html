@@ -1115,7 +1115,7 @@
                     const opt = document.createElement('option');
                     opt.value = i;
                     const preview = this.sentences[i].text.substring(0, 2);
-                    opt.textContent = `${i} ${preview}`;
+                    opt.textContent = `${i}. ${preview}`;
                     select.appendChild(opt);
                 }
                 // Always include the last sentence if not already a multiple of 5
@@ -1124,7 +1124,7 @@
                     const lastIdx = total - 1;
                     opt.value = lastIdx;
                     const preview = this.sentences[lastIdx].text.substring(0, 2);
-                    opt.textContent = `${lastIdx} ${preview}`;
+                    opt.textContent = `${lastIdx}. ${preview}`;
                     select.appendChild(opt);
                 }
                 if (total === 0) {
