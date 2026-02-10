@@ -493,7 +493,10 @@
             <button class="success-button" id="playButton" style="margin-left: 1rem;">▶️ 播放 Play</button>
             <button class="secondary-button" id="stopButton" disabled style="margin-left: 0.5rem;">⏹️ 停止 Stop</button>
             <button class="secondary-button" id="copySentenceButton" style="margin-left: 0.5rem;">📋 Copy 1000c</button>
-            <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem;">📋 Copy 3</button>
+            <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem; display: none;">📋 Copy 3</button>
+            <select id="jumpSentenceSelect" style="margin-left: 0.5rem; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem;">
+                <option value="0">0</option>
+            </select>
         </div>
 
         <div class="progress-bar">
@@ -564,6 +567,7 @@
                 this.sentenceIndicator = document.getElementById('sentenceIndicator');
                 this.prevSentenceButton = document.getElementById('prevSentenceButton');
                 this.nextSentenceButton = document.getElementById('nextSentenceButton');
+                this.jumpSentenceSelect = document.getElementById('jumpSentenceSelect');
 
                 this.flashcardSection = document.getElementById('flashcardSection');
                 this.flashcardOutput = document.getElementById('flashcardOutput');
@@ -662,6 +666,20 @@
                 // Sentence navigation
                 this.prevSentenceButton.addEventListener('click', () => this.navigateToSentence(-1));
                 this.nextSentenceButton.addEventListener('click', () => this.navigateToSentence(1));
+
+                // Jump to sentence dropdown
+                this.jumpSentenceSelect.addEventListener('change', () => {
+                    const idx = parseInt(this.jumpSentenceSelect.value);
+                    if (idx >= 0 && this.sentences && idx < this.sentences.length) {
+                        this.stop();
+                        this.currentSentenceIndex = idx;
+                        this.currentCharIndex = this.sentences[idx].startCharIndex;
+                        this.updateProgress();
+                        this.updateSentenceIndicator();
+                        this.clearHighlights();
+                        this.updateStatus(`跳至句子 ${idx + 1} / Jumped to sentence ${idx + 1}`);
+                    }
+                });
 
                 // Language radio button changes
                 this.mandarinRadio.addEventListener('change', () => {
@@ -814,6 +832,7 @@
 
                 this.updateProgress();
                 this.updateSentenceIndicator();
+                this.updateJumpDropdown();
                 this.updateStatus(`準備閱讀 ${this.sentences.length} 個句子 (${this.chars.length} 個字) / Ready to read ${this.sentences.length} sentences (${this.chars.length} characters)`);
             }
 
@@ -1087,6 +1106,31 @@
                 }, 1500);
             }
 
+            updateJumpDropdown() {
+                const select = this.jumpSentenceSelect;
+                select.innerHTML = '';
+                const total = this.sentences ? this.sentences.length : 0;
+                for (let i = 0; i < total; i += 5) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = i;
+                    select.appendChild(opt);
+                }
+                // Always include the last sentence if not already a multiple of 5
+                if (total > 0 && (total - 1) % 5 !== 0) {
+                    const opt = document.createElement('option');
+                    opt.value = total - 1;
+                    opt.textContent = total - 1;
+                    select.appendChild(opt);
+                }
+                if (total === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = 0;
+                    opt.textContent = 0;
+                    select.appendChild(opt);
+                }
+            }
+
             updateSentenceIndicator() {
                 if (!this.sentences || this.sentences.length === 0) {
                     this.sentenceIndicator.textContent = '準備閱讀 Ready to read...';
@@ -1248,13 +1292,6 @@
                 const text = lines.join('\n');
 
                 navigator.clipboard.writeText(text).then(() => {
-                    // Advance to the sentence after what was copied
-                    if (endIndex < this.sentences.length) {
-                        this.currentSentenceIndex = endIndex;
-                        this.currentCharIndex = this.sentences[endIndex].startCharIndex;
-                        this.updateProgress();
-                        this.updateSentenceIndicator();
-                    }
                     this.updateStatus(`已複製 ${totalChars} 字 (${lines.length} 句) Copied ${totalChars} chars (${lines.length} sentences)`);
                 }).catch(err => {
                     console.error('Failed to copy:', err);
