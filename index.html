@@ -117,6 +117,11 @@
             box-shadow: 0 0 5px rgba(255, 212, 59, 0.5);
         }
 
+        .char.highlighted {
+            background-color: #93C5FD;
+            border-radius: 2px;
+        }
+
         .gloss-group {
             position: relative;
             display: inline;
@@ -491,7 +496,7 @@
             <span class="sentence-indicator" id="sentenceIndicator">準備閱讀 Ready to read...</span>
             <button class="nav-button" id="nextSentenceButton">▶</button>
             <button class="success-button" id="playButton" style="margin-left: 1rem;">▶️ 播放 Play</button>
-            <button class="secondary-button" id="stopButton" disabled style="margin-left: 0.5rem;">⏹️ 停止 Stop</button>
+            <button class="primary-button" id="highlightButton" style="margin-left: 0.5rem; font-size: 0.85rem;">🔦 Highlight 1000c</button>
             <button class="secondary-button" id="copySentenceButton" style="margin-left: 0.5rem;">📋 Copy 1000c</button>
             <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem; display: none;">📋 Copy 3</button>
             <select id="jumpSentenceSelect" style="margin-left: 0.5rem; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem;">
@@ -556,7 +561,7 @@
                 this.progressFill = document.getElementById('progressFill');
 
                 this.playButton = document.getElementById('playButton');
-                this.stopButton = document.getElementById('stopButton');
+                this.highlightButton = document.getElementById('highlightButton');
                 this.copySentenceButton = document.getElementById('copySentenceButton');
                 this.copyThreeButton = document.getElementById('copyThreeButton');
                 this.speedSelect = document.getElementById('speedSelect');
@@ -600,7 +605,7 @@
 
                 // Playback controls
                 this.playButton.addEventListener('click', () => this.togglePlayPause());
-                this.stopButton.addEventListener('click', () => this.stop());
+                this.highlightButton.addEventListener('click', () => this.highlight1000c());
                 this.copySentenceButton.addEventListener('click', () => this.copyCharacters(1000));
                 this.copyThreeButton.addEventListener('click', () => this.copySentences(3));
 
@@ -609,6 +614,7 @@
 
                 // Character clicking in main reading area
                 this.readingArea.addEventListener('click', (e) => {
+                    this.clearRangeHighlights();
                     if (e.target.classList.contains('char')) {
                         const charIndex = parseInt(e.target.dataset.index);
                         this.jumpToChar(charIndex);
@@ -1170,6 +1176,7 @@
             }
 
             play() {
+                this.clearRangeHighlights();
                 if (!this.chars.length) {
                     this.updateStatus('請先輸入文字 Please enter some text first');
                     return;
@@ -1268,6 +1275,43 @@
                     console.error('Failed to copy:', err);
                     this.updateStatus('複製失敗 Failed to copy');
                 });
+            }
+
+            highlight1000c() {
+                if (!this.sentences || this.sentences.length === 0) {
+                    this.updateStatus('無文字 No text to highlight');
+                    return;
+                }
+
+                this.clearRangeHighlights();
+
+                const startIndex = this.currentSentenceIndex;
+                let totalChars = 0;
+                let endCharIndex = this.sentences[startIndex].startCharIndex;
+
+                for (let i = startIndex; i < this.sentences.length; i++) {
+                    totalChars += this.sentences[i].text.length;
+                    endCharIndex = this.sentences[i].endCharIndex;
+                    if (totalChars >= 1000) break;
+                }
+
+                const startChar = this.sentences[startIndex].startCharIndex;
+                const charElements = this.readingArea.querySelectorAll('.char');
+                for (let i = startChar; i <= endCharIndex && i < charElements.length; i++) {
+                    charElements[i].classList.add('highlighted');
+                }
+
+                // Scroll to start of highlighted area
+                if (charElements[startChar]) {
+                    charElements[startChar].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                this.updateStatus(`已高亮 ${totalChars} 字 Highlighted ${totalChars} chars`);
+            }
+
+            clearRangeHighlights() {
+                const highlighted = this.readingArea.querySelectorAll('.char.highlighted');
+                highlighted.forEach(el => el.classList.remove('highlighted'));
             }
 
             copyCharacters(charLimit) {
@@ -1534,7 +1578,6 @@
                     this.playButton.classList.remove('secondary-button');
                     this.playButton.classList.add('success-button');
                 }
-                this.stopButton.disabled = !this.isPlaying;
             }
 
             updateStatus(message) {
