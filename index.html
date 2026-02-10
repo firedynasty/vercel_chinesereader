@@ -492,7 +492,7 @@
             <button class="nav-button" id="nextSentenceButton">▶</button>
             <button class="success-button" id="playButton" style="margin-left: 1rem;">▶️ 播放 Play</button>
             <button class="secondary-button" id="stopButton" disabled style="margin-left: 0.5rem;">⏹️ 停止 Stop</button>
-            <button class="secondary-button" id="copySentenceButton" style="margin-left: 0.5rem;">📋 Copy 1</button>
+            <button class="secondary-button" id="copySentenceButton" style="margin-left: 0.5rem;">📋 Copy 1000c</button>
             <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem;">📋 Copy 3</button>
         </div>
 
@@ -597,7 +597,7 @@
                 // Playback controls
                 this.playButton.addEventListener('click', () => this.togglePlayPause());
                 this.stopButton.addEventListener('click', () => this.stop());
-                this.copySentenceButton.addEventListener('click', () => this.copySentences(1));
+                this.copySentenceButton.addEventListener('click', () => this.copyCharacters(1000));
                 this.copyThreeButton.addEventListener('click', () => this.copySentences(3));
 
                 // Speed changes
@@ -630,10 +630,10 @@
                             this.play();
                         }
                     }
-                    // '`' key to copy current sentence
+                    // '`' key to copy 1000 characters
                     if (e.key === '`') {
                         e.preventDefault();
-                        this.copySentences(1);
+                        this.copyCharacters(1000);
                     }
                     // Digit keys 0-9 for sentence number input
                     if (e.key >= '0' && e.key <= '9' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
@@ -1220,6 +1220,42 @@
                         this.updateSentenceIndicator();
                     }
                     this.updateStatus(`已複製 ${copied} 句 Copied ${copied} sentence${copied > 1 ? 's' : ''}`);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    this.updateStatus('複製失敗 Failed to copy');
+                });
+            }
+
+            copyCharacters(charLimit) {
+                if (!this.sentences || this.sentences.length === 0) {
+                    this.updateStatus('無文字 No text to copy');
+                    return;
+                }
+
+                const startIndex = this.currentSentenceIndex;
+                const lines = [];
+                let totalChars = 0;
+                let endIndex = startIndex;
+
+                for (let i = startIndex; i < this.sentences.length; i++) {
+                    const sentenceText = this.sentences[i].text;
+                    lines.push(sentenceText);
+                    totalChars += sentenceText.length;
+                    endIndex = i + 1;
+                    if (totalChars >= charLimit) break;
+                }
+
+                const text = lines.join('\n');
+
+                navigator.clipboard.writeText(text).then(() => {
+                    // Advance to the sentence after what was copied
+                    if (endIndex < this.sentences.length) {
+                        this.currentSentenceIndex = endIndex;
+                        this.currentCharIndex = this.sentences[endIndex].startCharIndex;
+                        this.updateProgress();
+                        this.updateSentenceIndicator();
+                    }
+                    this.updateStatus(`已複製 ${totalChars} 字 (${lines.length} 句) Copied ${totalChars} chars (${lines.length} sentences)`);
                 }).catch(err => {
                     console.error('Failed to copy:', err);
                     this.updateStatus('複製失敗 Failed to copy');
