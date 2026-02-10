@@ -219,29 +219,20 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .nav-button {
-            background-color: #6c757d;
-            color: white;
+        .warning-button {
+            background-color: #ffc107;
+            color: #212529;
             border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
             transition: background-color 0.2s;
         }
 
-        .nav-button:hover {
-            background-color: #5a6268;
-        }
-
-        .nav-button:disabled {
-            background-color: #e9ecef;
-            color: #6c757d;
-            cursor: not-allowed;
+        .warning-button:hover {
+            background-color: #e0a800;
         }
 
         .sentence-indicator {
@@ -492,10 +483,9 @@
 
         <!-- Sentence Navigation Bar with Play Controls -->
         <div class="sentence-nav">
-            <button class="nav-button" id="prevSentenceButton">◀</button>
             <span class="sentence-indicator" id="sentenceIndicator">準備閱讀 Ready to read...</span>
-            <button class="nav-button" id="nextSentenceButton">▶</button>
-            <button class="success-button" id="playButton" style="margin-left: 1rem;">▶️ 播放 Play</button>
+            <button class="warning-button" id="playOnceButton" style="margin-left: 1rem;">▶ Play Once</button>
+            <button class="success-button" id="playButton" style="margin-left: 0.5rem;">▶️ Play</button>
             <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem;">📋 Copy 3</button>
             <select id="jumpSentenceSelect" style="margin-left: 0.5rem; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem;">
                 <option value="0">0</option>
@@ -566,8 +556,7 @@
                 this.cantoneseRadio = document.getElementById('cantoneseRadio');
 
                 this.sentenceIndicator = document.getElementById('sentenceIndicator');
-                this.prevSentenceButton = document.getElementById('prevSentenceButton');
-                this.nextSentenceButton = document.getElementById('nextSentenceButton');
+                this.playOnceButton = document.getElementById('playOnceButton');
                 this.jumpSentenceSelect = document.getElementById('jumpSentenceSelect');
 
                 this.flashcardSection = document.getElementById('flashcardSection');
@@ -577,6 +566,7 @@
                 this.currentCharIndex = 0;
                 this.isPlaying = false;
                 this.isPaused = false;
+                this.isPlayOnce = false;
                 this.utterance = null;
 
                 this.sentenceStartTime = null;
@@ -601,6 +591,7 @@
 
                 // Playback controls
                 this.playButton.addEventListener('click', () => this.togglePlayPause());
+                this.playOnceButton.addEventListener('click', () => this.playOnce());
                 this.copyThreeButton.addEventListener('click', () => this.copySentences(3));
 
                 // Speed changes
@@ -662,10 +653,6 @@
                 document.getElementById('saveButton').addEventListener('click', () => this.saveToBlob());
                 document.getElementById('loadButton').addEventListener('click', () => this.loadFromBlob());
                 document.getElementById('copyFlashcardsButton').addEventListener('click', () => this.copyFlashcards());
-
-                // Sentence navigation
-                this.prevSentenceButton.addEventListener('click', () => this.navigateToSentence(-1));
-                this.nextSentenceButton.addEventListener('click', () => this.navigateToSentence(1));
 
                 // Jump to sentence dropdown
                 this.jumpSentenceSelect.addEventListener('change', () => {
@@ -1138,8 +1125,6 @@
             updateSentenceIndicator() {
                 if (!this.sentences || this.sentences.length === 0) {
                     this.sentenceIndicator.textContent = '準備閱讀 Ready to read...';
-                    this.prevSentenceButton.disabled = true;
-                    this.nextSentenceButton.disabled = true;
                     return;
                 }
 
@@ -1159,9 +1144,6 @@
                 const firstChars = currentSentence.text.substring(0, 3);
 
                 this.sentenceIndicator.textContent = `${this.currentSentenceIndex + 1}/${this.sentences.length}: ${firstChars}...`;
-
-                this.prevSentenceButton.disabled = this.currentSentenceIndex === 0;
-                this.nextSentenceButton.disabled = this.currentSentenceIndex === this.sentences.length - 1;
             }
 
             togglePlayPause() {
@@ -1169,8 +1151,27 @@
                     this.pause();
                     this.stop();
                 } else {
+                    this.isPlayOnce = false;
                     this.play();
                 }
+            }
+
+            playOnce() {
+                this.clearJumpHighlights();
+                if (!this.chars.length) {
+                    this.updateStatus('請先輸入文字 Please enter some text first');
+                    return;
+                }
+                if (!this.sentences || this.sentences.length === 0) {
+                    this.updateStatus('找不到句子 No sentences found to read');
+                    return;
+                }
+                // If already playing, stop first
+                if (this.isPlaying) {
+                    this.stop();
+                }
+                this.isPlayOnce = true;
+                this.startReading();
             }
 
             play() {
@@ -1403,6 +1404,14 @@
                     if (this.isPlaying && !this.isPaused) {
                         this.currentSentenceIndex++;
 
+                        if (this.isPlayOnce) {
+                            this.isPlayOnce = false;
+                            this.stop();
+                            this.updateSentenceIndicator();
+                            this.updateProgress();
+                            return;
+                        }
+
                         setTimeout(() => {
                             if (this.isPlaying && !this.isPaused) {
                                 this.speakCurrentSentence();
@@ -1521,11 +1530,11 @@
 
             updateButtonStates() {
                 if (this.isPlaying) {
-                    this.playButton.textContent = '⏸️ 暫停 Pause';
+                    this.playButton.textContent = '⏸️ Pause';
                     this.playButton.classList.remove('success-button');
                     this.playButton.classList.add('secondary-button');
                 } else {
-                    this.playButton.textContent = '▶️ 播放 Play';
+                    this.playButton.textContent = '▶️ Play';
                     this.playButton.classList.remove('secondary-button');
                     this.playButton.classList.add('success-button');
                 }
