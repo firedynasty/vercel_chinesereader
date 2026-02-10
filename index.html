@@ -117,6 +117,11 @@
             box-shadow: 0 0 5px rgba(255, 212, 59, 0.5);
         }
 
+        .char.jump-highlight {
+            background-color: #93C5FD;
+            border-radius: 2px;
+        }
+
         .gloss-group {
             position: relative;
             display: inline;
@@ -603,6 +608,7 @@
 
                 // Character clicking in main reading area
                 this.readingArea.addEventListener('click', (e) => {
+                    this.clearJumpHighlights();
                     if (e.target.classList.contains('char')) {
                         const charIndex = parseInt(e.target.dataset.index);
                         this.jumpToChar(charIndex);
@@ -671,6 +677,7 @@
                         this.updateProgress();
                         this.updateSentenceIndicator();
                         this.clearHighlights();
+                        this.highlightSentenceStart(idx);
                         this.updateStatus(`跳至句子 ${idx + 1} / Jumped to sentence ${idx + 1}`);
                     }
                 });
@@ -1167,6 +1174,7 @@
             }
 
             play() {
+                this.clearJumpHighlights();
                 if (!this.chars.length) {
                     this.updateStatus('請先輸入文字 Please enter some text first');
                     return;
@@ -1259,12 +1267,31 @@
                         this.currentCharIndex = this.sentences[endIndex].startCharIndex;
                         this.updateProgress();
                         this.updateSentenceIndicator();
+                        this.highlightSentenceStart(endIndex);
                     }
                     this.updateStatus(`已複製 ${copied} 句 Copied ${copied} sentence${copied > 1 ? 's' : ''}`);
                 }).catch(err => {
                     console.error('Failed to copy:', err);
                     this.updateStatus('複製失敗 Failed to copy');
                 });
+            }
+
+            highlightSentenceStart(sentenceIdx) {
+                this.clearJumpHighlights();
+                if (!this.sentences || sentenceIdx >= this.sentences.length) return;
+                const startChar = this.sentences[sentenceIdx].startCharIndex;
+                const charElements = this.readingArea.querySelectorAll('.char');
+                for (let i = 0; i < 2 && (startChar + i) < charElements.length; i++) {
+                    charElements[startChar + i].classList.add('jump-highlight');
+                }
+                if (charElements[startChar]) {
+                    charElements[startChar].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            clearJumpHighlights() {
+                const highlighted = this.readingArea.querySelectorAll('.char.jump-highlight');
+                highlighted.forEach(el => el.classList.remove('jump-highlight'));
             }
 
             jumpToChar(charIndex) {
