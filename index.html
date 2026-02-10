@@ -950,7 +950,7 @@
 
                     const trimmed = chinese.trim();
                     const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const regex = new RegExp('(?<!\\[)' + escaped + '(?!\\]|\\([^)]*\\))', 'g');
+                    const regex = new RegExp('(?<!\\[)' + escaped + '(?!\\]|\\([^)]*\\))');
                     const newText = text.replace(regex, `[${trimmed}](${english})`);
 
                     if (newText === text) {
@@ -958,10 +958,9 @@
                         return;
                     }
 
-                    const count = (newText.match(/\[/g) || []).length - (text.match(/\[/g) || []).length;
                     this.textArea.value = newText;
                     this.updateReadingArea();
-                    this.updateStatus(`已標註 ${count} 個 "${trimmed}" / Annotated ${count} occurrence(s)`);
+                    this.updateStatus(`已標註 "${trimmed}" / Annotated "${trimmed}"`);
                 } catch (err) {
                     console.error('Clipboard read failed:', err);
                     this.updateStatus('Failed to read clipboard');
@@ -984,7 +983,7 @@
 
                 // Replace occurrences not already inside an annotation
                 const escaped = chinese.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp('(?<!\\[)' + escaped + '(?!\\]|\\([^)]*\\))', 'g');
+                const regex = new RegExp('(?<!\\[)' + escaped + '(?!\\]|\\([^)]*\\))');
                 const newText = text.replace(regex, `[${chinese}](${english})`);
 
                 if (newText === text) {
@@ -992,10 +991,9 @@
                     return;
                 }
 
-                const count = (newText.match(/\[/g) || []).length - (text.match(/\[/g) || []).length;
                 this.textArea.value = newText;
                 this.updateReadingArea();
-                this.updateStatus(`已標註 ${count} 個 "${chinese}" / Annotated ${count} occurrence(s)`);
+                this.updateStatus(`已標註 "${chinese}" / Annotated "${chinese}"`);
             }
 
             copyFlashcards() {
