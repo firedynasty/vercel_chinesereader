@@ -487,9 +487,10 @@
             <button class="warning-button" id="playOnceButton" style="margin-left: 1rem;">▶ Play Once</button>
             <button class="success-button" id="playButton" style="margin-left: 0.5rem;">▶️ Play</button>
             <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem;">📋 Copy 3</button>
-            <select id="jumpSentenceSelect" style="margin-left: 0.5rem; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem;">
+            <select id="jumpSentenceSelect" style="display: none; margin-left: 0.5rem; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem;">
                 <option value="0">0</option>
             </select>
+            <button class="teal-button" id="annotateClipboardButton2" style="margin-left: 0.5rem; font-size: 0.85rem;">📋 Ann.</button>
         </div>
 
         <div class="progress-bar">
@@ -650,6 +651,7 @@
                 document.getElementById('annotateButton').addEventListener('click', () => this.annotateText());
                 document.getElementById('copyTextButton').addEventListener('click', () => this.copyTextArea());
                 document.getElementById('annotateClipboardButton').addEventListener('click', () => this.annotateFromClipboard());
+                document.getElementById('annotateClipboardButton2').addEventListener('click', () => this.annotateFromClipboard());
                 document.getElementById('saveButton').addEventListener('click', () => this.saveToBlob());
                 document.getElementById('loadButton').addEventListener('click', () => this.loadFromBlob());
                 document.getElementById('copyFlashcardsButton').addEventListener('click', () => this.copyFlashcards());
