@@ -477,7 +477,7 @@
             <button class="secondary-button" id="copyTextButton" style="font-size: 0.85rem;">📋 Copy</button>
             <button class="success-button" id="saveButton" style="font-size: 0.85rem;">💾 Save</button>
             <button class="primary-button" id="loadButton" style="font-size: 0.85rem;">📂 Load</button>
-            <button class="dbx-save-btn" id="dbxSaveBtn" style="display: none; padding: 0.75rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Save &#8593; DB</button>
+            <button class="dbx-save-btn" id="dbxSaveBtn" style="padding: 0.75rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Save &#8593; DB</button>
         </div>
 
         <textarea id="textArea" placeholder="在此貼上中文文字 / Paste Chinese text here..."></textarea>
@@ -1723,7 +1723,6 @@
             dbxFolderPath = '';
             dbxFolderFiles = [];
             dbxSaveMode = false;
-            document.getElementById('dbxSaveBtn').style.display = 'none';
             document.getElementById('dbxSaveRow').style.display = 'none';
             document.getElementById('dbxSignInSection').style.display = 'block';
             document.getElementById('dbxSearchSection').style.display = 'none';
@@ -1849,7 +1848,6 @@
 
                 currentDropboxFilePath = path;
                 currentDropboxFileName = name;
-                document.getElementById('dbxSaveBtn').style.display = 'flex';
                 closeDropboxModal();
                 setDbxStatus('');
             } catch (error) {
@@ -1858,10 +1856,6 @@
         }
 
         function dropboxSaveReport() {
-            if (!dropboxAccessToken) {
-                alert('Not signed in to Dropbox. Open Dropbox modal and sign in first.');
-                return;
-            }
             const content = document.getElementById('textArea').value;
             if (!content || !content.trim()) {
                 alert('No text content to save.');
@@ -1875,7 +1869,7 @@
                 if (!filename.endsWith('.txt')) filename += '.txt';
             }
             saveInput.value = filename;
-            // Show save row and open modal in save mode
+            // Open modal in save mode — if not signed in, modal shows sign-in first
             dbxSaveMode = true;
             openDropboxModal();
         }
@@ -1918,7 +1912,6 @@
                 }
                 currentDropboxFilePath = savePath;
                 currentDropboxFileName = filename;
-                document.getElementById('dbxSaveBtn').style.display = 'flex';
                 setDbxStatus(`Saved to ${savePath}`);
                 btn.textContent = 'Saved!';
                 setTimeout(() => { btn.textContent = origText; }, 1500);
