@@ -396,6 +396,28 @@
         .dbx-status { font-size: 12px; color: #888; margin-bottom: 10px; min-height: 18px; }
         .dbx-save-btn { background: #0061FF; color: white; }
         .dbx-save-btn:hover { background: #0052d4; }
+        .dbx-save-row {
+            display: none; margin-bottom: 12px; padding: 10px;
+            background: rgba(0, 97, 255, 0.1); border-radius: 6px;
+            border: 1px solid rgba(0, 97, 255, 0.3);
+        }
+        .dbx-save-row label {
+            display: block; color: #4da6ff; font-size: 12px;
+            font-weight: bold; margin-bottom: 6px;
+        }
+        .dbx-save-row .dbx-save-inner { display: flex; gap: 6px; }
+        .dbx-save-row input {
+            flex: 1; padding: 8px 10px;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+            background: rgba(255,255,255,0.1); color: #fff; font-size: 13px; outline: none;
+        }
+        .dbx-save-row input:focus { border-color: #4da6ff; }
+        .dbx-save-row button {
+            padding: 8px 14px; background: #10B981; color: white;
+            border: none; border-radius: 6px; font-size: 13px;
+            font-weight: bold; cursor: pointer;
+        }
+        .dbx-save-row button:hover { background: #059669; }
         .db-button {
             background-color: #0061FF; font-size: 12px; font-weight: bold;
             padding: 0.75rem 1rem;
@@ -529,6 +551,13 @@
                     <div class="dbx-mode-toggle">
                         <label><input type="radio" name="dbxSearchMode" value="file" checked> Files</label>
                         <label><input type="radio" name="dbxSearchMode" value="folder"> Folders</label>
+                    </div>
+                    <div class="dbx-save-row" id="dbxSaveRow">
+                        <label>Save As:</label>
+                        <div class="dbx-save-inner">
+                            <input type="text" id="dbxSaveInput" placeholder="filename.txt">
+                            <button id="dbxSaveConfirmBtn">Save</button>
+                        </div>
                     </div>
                     <div id="dbxBackNav" style="display: none;">
                         <button class="dbx-back-link" id="dbxBackBtn">&#8592; Back to results</button>
@@ -1564,6 +1593,7 @@
         let dbxSearchResults = [];
         let dbxFolderPath = '';
         let dbxFolderFiles = [];
+        let dbxSaveMode = false;
         let appInstance = null;
 
         const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -1612,6 +1642,9 @@
                 document.getElementById('dbxSignInSection').style.display = 'block';
                 document.getElementById('dbxSearchSection').style.display = 'none';
             }
+            // Show/hide save row based on save mode
+            document.getElementById('dbxSaveRow').style.display = dbxSaveMode ? 'block' : 'none';
+            dbxSaveMode = false;
         }
 
         function closeDropboxModal() {
@@ -1689,7 +1722,9 @@
             dbxSearchResults = [];
             dbxFolderPath = '';
             dbxFolderFiles = [];
+            dbxSaveMode = false;
             document.getElementById('dbxSaveBtn').style.display = 'none';
+            document.getElementById('dbxSaveRow').style.display = 'none';
             document.getElementById('dbxSignInSection').style.display = 'block';
             document.getElementById('dbxSearchSection').style.display = 'none';
             document.getElementById('dbxResults').innerHTML = '';
@@ -1822,20 +1857,54 @@
             }
         }
 
-        async function saveToDropbox() {
-            if (!currentDropboxFilePath || !dropboxAccessToken) return;
-            const btn = document.getElementById('dbxSaveBtn');
-            const origText = btn.innerHTML;
+        function dropboxSaveReport() {
+            if (!dropboxAccessToken) {
+                alert('Not signed in to Dropbox. Open Dropbox modal and sign in first.');
+                return;
+            }
+            const content = document.getElementById('textArea').value;
+            if (!content || !content.trim()) {
+                alert('No text content to save.');
+                return;
+            }
+            // Pre-fill filename from currently loaded file or default
+            const saveInput = document.getElementById('dbxSaveInput');
+            let filename = 'chinese_text.txt';
+            if (currentDropboxFileName) {
+                filename = currentDropboxFileName;
+                if (!filename.endsWith('.txt')) filename += '.txt';
+            }
+            saveInput.value = filename;
+            // Show save row and open modal in save mode
+            dbxSaveMode = true;
+            openDropboxModal();
+        }
+
+        async function dropboxConfirmSave() {
+            const saveInput = document.getElementById('dbxSaveInput');
+            let filename = saveInput.value.trim();
+            if (!filename) {
+                setDbxStatus('Enter a filename to save.');
+                return;
+            }
+            if (!filename.endsWith('.txt')) filename += '.txt';
+
+            const folder = dbxFolderPath || '';
+            const savePath = folder + '/' + filename;
+
+            const content = document.getElementById('textArea').value;
+            setDbxStatus(`Saving to ${savePath}...`);
+            const btn = document.getElementById('dbxSaveConfirmBtn');
+            const origText = btn.textContent;
             btn.textContent = 'Saving...';
             btn.disabled = true;
             try {
-                const content = document.getElementById('textArea').value;
                 const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
                     method: 'POST',
                     headers: {
                         Authorization: `Bearer ${dropboxAccessToken}`,
                         'Dropbox-API-Arg': JSON.stringify({
-                            path: currentDropboxFilePath,
+                            path: savePath,
                             mode: { '.tag': 'overwrite' },
                             mute: true,
                         }),
@@ -1843,16 +1912,23 @@
                     },
                     body: content,
                 });
-                if (response.ok) {
-                    btn.textContent = 'Saved!';
-                    setTimeout(() => { btn.innerHTML = origText; }, 1500);
-                } else {
+                if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.error_summary || `HTTP ${response.status}`);
                 }
+                currentDropboxFilePath = savePath;
+                currentDropboxFileName = filename;
+                document.getElementById('dbxSaveBtn').style.display = 'flex';
+                setDbxStatus(`Saved to ${savePath}`);
+                btn.textContent = 'Saved!';
+                setTimeout(() => { btn.textContent = origText; }, 1500);
+                // Refresh folder listing
+                if (dbxFolderPath) {
+                    await loadDropboxFolder(dbxFolderPath);
+                }
             } catch (error) {
-                alert('Error saving to Dropbox: ' + error.message);
-                btn.innerHTML = origText;
+                setDbxStatus('Save error: ' + error.message);
+                btn.textContent = origText;
             } finally {
                 btn.disabled = false;
             }
@@ -1922,7 +1998,11 @@
             });
             document.getElementById('dbxResults').addEventListener('click', handleDbxResultClick);
             document.getElementById('dbxBackBtn').addEventListener('click', handleDbxBackToResults);
-            document.getElementById('dbxSaveBtn').addEventListener('click', saveToDropbox);
+            document.getElementById('dbxSaveBtn').addEventListener('click', dropboxSaveReport);
+            document.getElementById('dbxSaveConfirmBtn').addEventListener('click', dropboxConfirmSave);
+            document.getElementById('dbxSaveInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') dropboxConfirmSave();
+            });
             document.getElementById('dbxModal').addEventListener('click', (e) => {
                 if (e.target === e.currentTarget) closeDropboxModal();
             });
