@@ -235,6 +235,59 @@
             background-color: #e0a800;
         }
 
+        /* Auto-play toggle slider */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ddd;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .switch .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .switch input:checked + .slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .switch input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .toggle-label {
+            font-size: 0.85em;
+            color: #495057;
+            font-weight: 500;
+        }
+
         .sentence-indicator {
             flex: 1;
             text-align: center;
@@ -506,7 +559,11 @@
         <!-- Sentence Navigation Bar with Play Controls -->
         <div class="sentence-nav">
             <span class="sentence-indicator" id="sentenceIndicator">準備閱讀 Ready to read...</span>
-            <button class="warning-button" id="playOnceButton" style="margin-left: 1rem;">▶ Play Once</button>
+            <label class="switch" style="margin-left: 1rem;">
+                <input type="checkbox" id="autoPlayToggle">
+                <span class="slider"></span>
+            </label>
+            <span class="toggle-label" id="autoPlayLabel">Auto</span>
             <button class="success-button" id="playButton" style="margin-left: 0.5rem;">▶️ Play</button>
             <button class="secondary-button" id="copyThreeButton" style="margin-left: 0.5rem;">📋 Copy 3</button>
             <select id="jumpSentenceSelect" style="display: none; margin-left: 0.5rem; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem;">
@@ -586,8 +643,15 @@
                 this.cantoneseRadio = document.getElementById('cantoneseRadio');
 
                 this.sentenceIndicator = document.getElementById('sentenceIndicator');
-                this.playOnceButton = document.getElementById('playOnceButton');
+                this.autoPlayToggle = document.getElementById('autoPlayToggle');
+                this.autoPlayLabel = document.getElementById('autoPlayLabel');
                 this.jumpSentenceSelect = document.getElementById('jumpSentenceSelect');
+
+                // Load saved auto-play preference
+                if (localStorage.getItem('autoPlayOnClick') === 'true') {
+                    this.autoPlayToggle.checked = true;
+                }
+                this.autoPlayClickTimeout = null;
 
                 this.flashcardSection = document.getElementById('flashcardSection');
                 this.flashcardOutput = document.getElementById('flashcardOutput');
@@ -621,7 +685,9 @@
 
                 // Playback controls
                 this.playButton.addEventListener('click', () => this.togglePlayPause());
-                this.playOnceButton.addEventListener('click', () => this.playOnce());
+                this.autoPlayToggle.addEventListener('change', () => {
+                    localStorage.setItem('autoPlayOnClick', this.autoPlayToggle.checked.toString());
+                });
                 this.copyThreeButton.addEventListener('click', () => this.copySentences(3));
 
                 // Speed changes
@@ -633,6 +699,17 @@
                     if (e.target.classList.contains('char')) {
                         const charIndex = parseInt(e.target.dataset.index);
                         this.jumpToChar(charIndex);
+
+                        // Auto-play after 500ms if toggle is on
+                        if (this.autoPlayToggle.checked) {
+                            if (this.autoPlayClickTimeout) {
+                                clearTimeout(this.autoPlayClickTimeout);
+                            }
+                            this.autoPlayClickTimeout = setTimeout(() => {
+                                this.playOnce();
+                                this.autoPlayClickTimeout = null;
+                            }, 500);
+                        }
                     }
                 });
 
