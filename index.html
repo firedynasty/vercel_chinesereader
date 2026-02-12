@@ -882,19 +882,28 @@
                         endCharIndex: charIndex + charsInSentence.length - 1
                     });
 
+                    // Check if sentence contains CJK characters (Chinese/Japanese/Korean)
+                    const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(cleanText);
+
+                    // For non-CJK text, render spaces as &nbsp; to preserve word spacing
+                    const renderChar = (char) => {
+                        if (char === ' ' && !isCJK) return '&nbsp;';
+                        return this.escapeHtml(char);
+                    };
+
                     // Create HTML from parsed segments
                     let sentenceCharsHtml = '';
                     segments.forEach(segment => {
                         if (segment.type === 'gloss') {
                             const glossChars = segment.word.split('');
                             const glossCharsHtml = glossChars.map((char) =>
-                                `<span class="char" data-index="${charIndex++}" data-sentence="${sentenceIndex}">${this.escapeHtml(char)}</span>`
+                                `<span class="char" data-index="${charIndex++}" data-sentence="${sentenceIndex}">${renderChar(char)}</span>`
                             ).join('');
                             sentenceCharsHtml += `<span class="gloss-group" data-gloss="${this.escapeAttr(segment.gloss)}">${glossCharsHtml}</span>`;
                         } else {
                             const textChars = segment.content.split('');
                             sentenceCharsHtml += textChars.map((char) =>
-                                `<span class="char" data-index="${charIndex++}" data-sentence="${sentenceIndex}">${this.escapeHtml(char)}</span>`
+                                `<span class="char" data-index="${charIndex++}" data-sentence="${sentenceIndex}">${renderChar(char)}</span>`
                             ).join('');
                         }
                     });
