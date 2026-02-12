@@ -518,6 +518,10 @@
                 <input type="radio" name="chineseLanguage" value="zh-HK" id="cantoneseRadio">
                 <span>🇭🇰 粵語 Cantonese</span>
             </label>
+            <label class="radio-label">
+                <input type="radio" name="chineseLanguage" value="es-ES" id="spanishRadio">
+                <span>🇪🇸 Español Spanish</span>
+            </label>
         </div>
 
         <div class="button-group">
@@ -641,6 +645,7 @@
 
                 this.mandarinRadio = document.getElementById('mandarinRadio');
                 this.cantoneseRadio = document.getElementById('cantoneseRadio');
+                this.spanishRadio = document.getElementById('spanishRadio');
 
                 this.sentenceIndicator = document.getElementById('sentenceIndicator');
                 this.autoPlayToggle = document.getElementById('autoPlayToggle');
@@ -799,6 +804,20 @@
                         this.updateStatus('切換至粵語 Switched to Cantonese');
 
                         // If currently playing, restart from current sentence with new voice
+                        if (this.isPlaying) {
+                            this.stop();
+                            setTimeout(() => {
+                                this.play();
+                            }, 100);
+                        }
+                    }
+                });
+
+                this.spanishRadio.addEventListener('change', () => {
+                    if (this.spanishRadio.checked) {
+                        console.log('🔄 Switched to Spanish (es-ES)');
+                        this.updateStatus('Cambiado a Español / Switched to Spanish');
+
                         if (this.isPlaying) {
                             this.stop();
                             setTimeout(() => {
@@ -1461,66 +1480,69 @@
                 // Start character highlighting
                 this.startCharHighlighting(sentence);
 
-                // Filter sentence text to only include Chinese characters and punctuation
-                // Keep only Chinese characters (Unicode range \u4e00-\u9fff) and Chinese punctuation
-                const chineseOnlyText = sentence.text.replace(/[^\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '').trim();
+                // Determine selected language
+                let selectedLang;
+                if (this.spanishRadio.checked) {
+                    selectedLang = 'es-ES';
+                } else if (this.cantoneseRadio.checked) {
+                    selectedLang = 'zh-HK';
+                } else {
+                    selectedLang = 'zh-CN';
+                }
+
+                // For Chinese, filter to only Chinese characters and punctuation
+                // For Spanish/other, use the full sentence text
+                let ttsText;
+                if (selectedLang.startsWith('zh')) {
+                    ttsText = sentence.text.replace(/[^\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '').trim();
+                } else {
+                    ttsText = sentence.text.trim();
+                }
 
                 console.log('📝 Original text:', sentence.text);
-                console.log('🇨🇳 Filtered Chinese only:', chineseOnlyText);
+                console.log('🗣️ TTS text:', ttsText);
 
-                this.utterance = new SpeechSynthesisUtterance(chineseOnlyText);
+                this.utterance = new SpeechSynthesisUtterance(ttsText);
                 this.utterance.rate = parseFloat(this.speedSelect.value);
                 this.utterance.pitch = 1;
                 this.utterance.volume = 1;
-
-                // Get selected language (Mandarin or Cantonese)
-                const selectedLang = this.mandarinRadio.checked ? 'zh-CN' : 'zh-HK';
                 this.utterance.lang = selectedLang;
 
                 console.log('🎤 Selected language:', selectedLang);
-                console.log('📻 Radio buttons - Mandarin:', this.mandarinRadio.checked, 'Cantonese:', this.cantoneseRadio.checked);
 
-                // Voice selection for Chinese - prioritize Google voices
+                // Voice selection - prioritize Google voices
                 const voices = speechSynthesis.getVoices();
-                console.log('🔊 Total voices available:', voices.length);
-
-                // Debug: Show all Chinese voices
-                const allChineseVoices = voices.filter(v => v.lang.startsWith('zh'));
-                console.log('🇨🇳 All Chinese voices:', allChineseVoices.map(v => `${v.name} (${v.lang})`));
+                const langPrefix = selectedLang.substring(0, 2);
 
                 if (voices.length > 0) {
                     // Try to find Google voices first - EXACT match
-                    let chineseVoice = voices.find(voice =>
+                    let selectedVoice = voices.find(voice =>
                         voice.lang === selectedLang && voice.name.includes('Google')
                     );
-                    console.log('🔍 Google voice search for', selectedLang, ':', chineseVoice ? chineseVoice.name : 'NOT FOUND');
 
                     // If no exact Google voice, try Enhanced/Premium voices - EXACT match
-                    if (!chineseVoice) {
-                        chineseVoice = voices.find(voice =>
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice =>
                             voice.lang === selectedLang &&
                             (voice.name.includes('Enhanced') || voice.name.includes('Premium'))
                         );
-                        console.log('🔍 Enhanced/Premium voice search:', chineseVoice ? chineseVoice.name : 'NOT FOUND');
                     }
 
                     // Fall back to any voice with EXACT language match
-                    if (!chineseVoice) {
-                        chineseVoice = voices.find(voice => voice.lang === selectedLang);
-                        console.log('🔍 Any exact match voice search:', chineseVoice ? chineseVoice.name : 'NOT FOUND');
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => voice.lang === selectedLang);
                     }
 
-                    // Last resort: startsWith match (for variations like zh-CN-Liaoning)
-                    if (!chineseVoice) {
-                        chineseVoice = voices.find(voice => voice.lang.startsWith(selectedLang));
-                        console.log('🔍 StartsWith match voice search:', chineseVoice ? chineseVoice.name : 'NOT FOUND');
+                    // Last resort: startsWith match (for variations like es-MX, zh-CN-Liaoning)
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => voice.lang.startsWith(langPrefix));
                     }
 
-                    if (chineseVoice) {
-                        this.utterance.voice = chineseVoice;
-                        console.log('✅ Using voice:', chineseVoice.name, chineseVoice.lang);
+                    if (selectedVoice) {
+                        this.utterance.voice = selectedVoice;
+                        console.log('✅ Using voice:', selectedVoice.name, selectedVoice.lang);
                     } else {
-                        console.log('❌ No Chinese voice found, using default');
+                        console.log('❌ No voice found for', selectedLang, ', using default');
                     }
                 }
 
