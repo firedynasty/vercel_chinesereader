@@ -996,8 +996,14 @@
                         return;
                     }
 
+                    const savedSentenceIndex = this.currentSentenceIndex;
+                    const savedCharIndex = this.currentCharIndex;
                     this.textArea.value = newText;
                     this.updateReadingArea();
+                    this.currentSentenceIndex = Math.min(savedSentenceIndex, this.sentences.length - 1);
+                    this.currentCharIndex = savedCharIndex;
+                    this.updateSentenceIndicator();
+                    this.updateProgress();
                     this.updateStatus(`已標註 "${trimmed}" / Annotated "${trimmed}"`);
                 } catch (err) {
                     console.error('Clipboard read failed:', err);
@@ -1029,8 +1035,14 @@
                     return;
                 }
 
+                const savedSentenceIndex = this.currentSentenceIndex;
+                const savedCharIndex = this.currentCharIndex;
                 this.textArea.value = newText;
                 this.updateReadingArea();
+                this.currentSentenceIndex = Math.min(savedSentenceIndex, this.sentences.length - 1);
+                this.currentCharIndex = savedCharIndex;
+                this.updateSentenceIndicator();
+                this.updateProgress();
                 this.updateStatus(`已標註 "${chinese}" / Annotated "${chinese}"`);
             }
 
