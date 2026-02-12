@@ -2079,6 +2079,12 @@
 
         function handleDbxSearch() {
             const query = document.getElementById('dbxSearchInput').value;
+            const q = query.trim();
+            if (q.startsWith('/')) {
+                // Direct path navigation — open the folder directly
+                loadDropboxFolder(q.replace(/\/+$/, '') || '');
+                return;
+            }
             const mode = document.querySelector('input[name="dbxSearchMode"]:checked').value;
             if (mode === 'file') { searchDropboxFiles(query); } else { searchDropboxFolders(query); }
         }
