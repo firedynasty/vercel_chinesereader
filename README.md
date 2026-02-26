@@ -17,7 +17,6 @@ A browser-based Chinese text-to-speech reader for language learners. Paste in Ch
 - Flashcard generation from annotated words — copy to clipboard for import into study apps
 
 **Cloud Storage**
-- Save and load text via Vercel Blob storage
 - Dropbox integration with OAuth2 (browse, search, download, and upload files)
 
 **Keyboard Shortcuts**
@@ -36,7 +35,6 @@ npm start
 ```
 
 For cloud features, set these environment variables:
-- `BLOB_READ_WRITE_TOKEN` — Vercel Blob storage token
 - `REACT_APP_DROPBOX_APP_KEY` — Dropbox API app key
 
 ## File Structure
@@ -44,8 +42,7 @@ For cloud features, set these environment variables:
 ```
 index.html          Main app (single-page, self-contained)
 api/
-  files.js          Vercel Blob storage API (list, save)
   dropbox-key.js    Serves Dropbox app key to client
 vercel.json         URL rewrites for Vercel deployment
-package.json        Dependencies (@vercel/blob)
+package.json        Project metadata
 ```
