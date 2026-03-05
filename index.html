@@ -863,6 +863,16 @@
                     return;
                 }
 
+                // Strip non-Chinese characters from each line, keeping only CJK characters and Chinese punctuation
+                text = text.split('\n').map(line => {
+                    return line.replace(/[^\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff\u2e80-\u2eff\u3000-\u303f\uff00-\uffef\u2000-\u206f\n]/g, '');
+                }).filter(line => line.trim().length > 0).join('\n');
+
+                if (!text) {
+                    this.clearText();
+                    return;
+                }
+
                 // Split Chinese text into sentences (using Chinese punctuation, numbered items, AND newlines)
                 // Split on: numbered patterns like "1. **", Chinese punctuation, or newlines
                 const allRawSentences = text
